@@ -1,0 +1,47 @@
+{
+    "name": "revisitor",
+    "version": "0.0.1",
+    "description": "A task runner for your git projects to execute jobs at regular intervals and generate reports / alerts / notifications / mails",
+    "engines": {
+        "node": ">=18"
+    },
+    "main": "index.js",
+    "bin": {
+        "revisitor": "./index.js"
+    },
+    "scripts": {
+        "test": "echo \"Warning: no test specified\"",
+        "start": "node index.js"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/webextensions/revisitor.git"
+    },
+    "keywords": [
+        "task",
+        "runner",
+        "git",
+        "project",
+        "execute",
+        "jobs",
+        "time",
+        "period",
+        "periodically",
+        "regular",
+        "interval",
+        "generate",
+        "reports",
+        "alerts",
+        "notifications",
+        "mails",
+        "emails"
+    ],
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/webextensions/revisitor/issues"
+    },
+    "homepage": "https://github.com/webextensions/revisitor#readme",
+    "dependencies": {
+        "note-down": "^1.0.2"
+    }
+}
