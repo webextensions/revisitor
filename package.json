@@ -41,6 +41,9 @@
         "url": "https://github.com/webextensions/revisitor/issues"
     },
     "homepage": "https://github.com/webextensions/revisitor#readme",
+    "publishConfig": {
+        "access": "public"
+    },
     "dependencies": {
         "note-down": "^1.0.2"
     }
