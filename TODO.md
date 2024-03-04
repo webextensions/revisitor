@@ -16,6 +16,7 @@
 
 module.exports = {
     manifestVersion: 1,
+    id: 'revisitor',
     title: 'Revisitor',
     url: 'git@github.com:webextensions/revisitor.git',
 

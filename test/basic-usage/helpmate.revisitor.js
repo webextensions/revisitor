@@ -1,5 +1,6 @@
 module.exports = {
     manifestVersion: 1,
+    id: 'helpmate',
     title: 'Helpmate',
     // url: 'git@github.com:webextensions/helpmate.git',
     url: '../../../helpmate-revisitor-test/.git',
@@ -17,6 +18,9 @@ module.exports = {
                 // ...
             }
         ]
+    },
+    crons: {
+        useByRunner: ['30 8 * * *']
     },
 
     jobs: [
