@@ -1,0 +1,11 @@
+{
+    "name": "basic-usage",
+    "version": "0.0.1",
+    "scripts": {
+        "revisitor:execute":          "revisitor --config ./all.js --execute",
+        "revisitor:execute:helpmate": "revisitor --config ./all.js --execute helpmate"
+    },
+    "dependencies": {
+        "revisitor": "../../"
+    }
+}
