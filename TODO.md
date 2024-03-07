@@ -259,14 +259,14 @@ module.exports = {
         {
             type: 'npmInstall', // Not cleaning npm cache
             options: {
-                approach: 'npmCi', // 'npmInstall' / 'npmCi'
+                approach: 'ci', // 'install' / 'ci'
                 attempts: 3 // Run the npm ci up to 3 times (if error encountered)
             }
         },
         {
             type: 'npmInstallTime', // Not cleaning npm cache
             options: {
-                approach: 'npmInstall', // 'npmInstall' / 'npmCi'
+                approach: 'install', // 'install' / 'ci'
                 limit: {
                     warn: 30, // 30 seconds
                     warnIncrement: 15, // Warn on 30, 45, 60, ...
@@ -491,8 +491,8 @@ project-monitor/
         //     "revisitor": "0.0.1"
         // },
         // "scripts": {
-        //     "revisitor:execute":           "revisitor --config ./projects/index.js --execute",
         //     "revisitor:add":               "revisitor --config ./projects/index.js --add    ",
+        //     "revisitor:execute":           "revisitor --config ./projects/index.js --execute",
         //     "revisitor:start":             "revisitor --config ./projects/index.js --start  ",
         //     "revisitor:stop":              "revisitor --config ./projects/index.js --stop   ",
         //     "revisitor:remove":            "revisitor --config ./projects/index.js --remove ",
@@ -524,6 +524,7 @@ project-monitor/
                             }
                         ]
                     },
+                    reportDuration: true,
                     projects: [
                         sanitizeConfig(require("./helpmate.revisitor.js")),
                         sanitizeConfig(require("./project-2.revisitor.js")),

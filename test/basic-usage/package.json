@@ -2,7 +2,10 @@
     "name": "basic-usage",
     "version": "0.0.1",
     "scripts": {
+        "revisitor:add":              "revisitor --config ./all.js --add",
         "revisitor:execute":          "revisitor --config ./all.js --execute",
+
+        "revisitor:add:helpmate":     "revisitor --config ./all.js --add helpmate",
         "revisitor:execute:helpmate": "revisitor --config ./all.js --execute helpmate"
     },
     "dependencies": {

@@ -28,12 +28,20 @@ module.exports = {
             type: 'gitBranchesCount',
             runOnceForProject: true,
             options: {
-                report: 'always', // 'always' / 'onIssue' (default)
+                report: 'always',     // 'always' / 'onIssue' (default)
                 limit: {
-                    warn: 2, // 2 branches
+                    warn: 2,          // 2 branches
                     warnIncrement: 2, // Warn on 2+, 4+, 6+
                     error: 7
                 }
+            }
+        },
+        {
+            type: 'npmInstall',   // Not cleaning npm cache
+            options: {
+                report: 'always', // 'always' / 'onIssue' (default)
+                approach: 'ci',   // 'install' / 'ci'
+                attempts: 3       // Run the npm ci up to 3 times (if error encountered)
             }
         }
     ]

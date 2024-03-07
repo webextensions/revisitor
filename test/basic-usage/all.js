@@ -1,5 +1,13 @@
 module.exports = {
-    reporters: {},
+    reporters: {
+        useByRunner: [
+            {
+                type: 'mail'
+            }
+        ]
+    },
+    reportDuration: true,
+
     projects: [
         require('./helpmate.revisitor.js')
     ]
