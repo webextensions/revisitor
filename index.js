@@ -8,6 +8,7 @@ const {
     logger,
     noteDown
 } = require('note-down');
+noteDown.option('showLogLine', false);
 const chalk = noteDown.chalk;
 
 
@@ -65,6 +66,16 @@ const config = require(configPath);
                 config.branches?.fallbackByRunner
             );
             delete config.branches;
+
+            for (const job of project.jobs) {
+                const { runOnceForProject } = job;
+                if (runOnceForProject) {
+                    project.branches = [
+                        ...project.branches,
+                        '<project-jobs-from-any-branch>'
+                    ];
+                }
+            }
 
             project.crons = (
                 project.crons?.useByRunner ||
@@ -130,7 +141,6 @@ const config = require(configPath);
                     id,
                     title
                 } = project;
-                logger.info(`\nExecuting for project: ${title}`);
 
                 cd('/var/tmp/revisitor');
                 cd(id);
@@ -138,79 +148,115 @@ const config = require(configPath);
 
                 await $`git fetch`;
 
-                await $`git reset --hard origin/${project.branches[0]}`;
+                logger.log(`\n➤ Project: ${title}`);
+                for (const branch of project.branches) {
+                    if (branch !== '<project-jobs-from-any-branch>') {
+                        await $`git checkout ${branch}`.quiet();
+                        await $`git reset --hard origin/${branch}`.quiet();
+                    }
 
-                for (const job of project.jobs) {
-                    const { type } = job;
-                    logger.log(`    ➤ ${type}`);
+                    logger.log(`    ➤ Branch: ${branch}`);
 
-                    if (type === 'gitBranchesCount') {
-                        const { options } = job;
-                        const { report } = options;
+                    for (const job of project.jobs) {
+                        const {
+                            type,
+                            runOnceForProject,
+                            runForBranches
+                        } = job;
 
-                        await $`git remote prune origin`.quiet();
-                        const branches = await $`git branch -r | grep -v "origin/HEAD" | wc -l`.quiet();
-                        const branchesCount = parseInt(branches.stdout.trim());
+                        if (runOnceForProject) {
+                            if (branch !== '<project-jobs-from-any-branch>') {
+                                continue;
+                            }
+                        } else {
+                            if (branch === '<project-jobs-from-any-branch>') {
+                                continue;
+                            }
+                        }
 
                         if (
-                            options.limit &&
-                            options.limit.error &&
-                            branchesCount >= options.limit.error
+                            runForBranches &&
+                            !runForBranches.includes(branch)
                         ) {
-                            logger.error(`        ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})`);
-                        } else if (
-                            options.limit &&
-                            options.limit.warn &&
-                            branchesCount >= options.limit.warn
-                        ) {
-                            logger.warn(`        ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)`);
-                        } else if (report === 'always') {
-                            logger.log(`        ${chalk.green('✔')} Branches count: ${branchesCount}`);
-                        }
-                    } else if (type === 'npmInstall') {
-                        const { options } = job;
-                        const {
-                            report,
-                            approach,
-                            attempts
-                        } = options;
-
-                        let errorOccurred = false;
-                        let attemptInstance = 0;
-                        let attemptDuration = 0;
-                        let totalDuration = 0;
-                        try {
-                            for (let i = 0; i < attempts; i++) {
-                                try {
-                                    attemptInstance = i + 1;
-                                    const t1 = Date.now();
-                                    await $`npm ${approach}`.quiet();
-                                    const t2 = Date.now();
-                                    attemptDuration = t2 - t1;
-                                    totalDuration += attemptDuration;
-                                    break;
-                                } catch (error) {
-                                    if (i === attempts - 1) {
-                                        throw error;
-                                    }
-                                }
-                            }
-                        } catch (err) {
-                            errorOccurred = true;
+                            continue;
                         }
 
-                        if (errorOccurred) {
-                            logger.error(`        ✗ npm ${approach} failed in ${attemptInstance} attempt(s)`);
-                        } else if (report === 'always') {
+                        logger.log(`        ➤ Job: ${type}`);
+
+                        if (type === 'gitBranchesCount') {
+                            const { options } = job;
+                            const { report } = options;
+
+                            const t1 = Date.now();
+                            await $`git remote prune origin`.quiet();
+                            const branches = await $`git branch -r | grep -v "origin/HEAD" | wc -l`.quiet();
+                            const t2 = Date.now();
                             let durationToAppend = '';
                             if (reportDuration) {
-                                if (attemptInstance > 1) {
-                                    durationToAppend = chalk.dim(` (${attemptDuration}ms / ${totalDuration}ms)`);
-                                } else {
-                                    durationToAppend = chalk.dim(` (${attemptDuration}ms)`);
-                                }
+                                durationToAppend = chalk.dim(` (${t2 - t1}ms)`);
                             }
-                            logger.log(`        ${chalk.green('✔')} npm ${approach}${durationToAppend}`);
+                            const branchesCount = parseInt(branches.stdout.trim());
+
+                            if (
+                                options.limit &&
+                                options.limit.error &&
+                                branchesCount >= options.limit.error
+                            ) {
+                                logger.error(`            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
+                            } else if (
+                                options.limit &&
+                                options.limit.warn &&
+                                branchesCount >= options.limit.warn
+                            ) {
+                                logger.warn(`            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
+                            } else if (report === 'always') {
+                                logger.log(`            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
+                            }
+                        } else if (type === 'npmInstall') {
+                            const { options } = job;
+                            const {
+                                report,
+                                approach,
+                                attempts
+                            } = options;
+
+                            let errorOccurred = false;
+                            let attemptInstance = 0;
+                            let attemptDuration = 0;
+                            let totalDuration = 0;
+                            try {
+                                for (let i = 0; i < attempts; i++) {
+                                    try {
+                                        attemptInstance = i + 1;
+                                        const t1 = Date.now();
+                                        await $`npm ${approach}`.quiet();
+                                        const t2 = Date.now();
+                                        attemptDuration = t2 - t1;
+                                        totalDuration += attemptDuration;
+                                        break;
+                                    } catch (error) {
+                                        if (i === attempts - 1) {
+                                            throw error;
+                                        }
+                                    }
+                                }
+                            } catch (err) {
+                                errorOccurred = true;
+                            }
+
+                            if (errorOccurred) {
+                                logger.error(`            ✗ npm ${approach} failed in ${attemptInstance} attempt(s)`);
+                            } else if (report === 'always') {
+                                let durationToAppend = '';
+                                if (reportDuration) {
+                                    if (attemptInstance > 1) {
+                                        durationToAppend = chalk.dim(` (${attemptDuration}ms / ${totalDuration}ms)`);
+                                    } else {
+                                        durationToAppend = chalk.dim(` (${attemptDuration}ms)`);
+                                    }
+                                }
+                                logger.log(`            ${chalk.green('✔')} npm ${approach}${durationToAppend}`);
+                            }
                         }
                     }
                 }

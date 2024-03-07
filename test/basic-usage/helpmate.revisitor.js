@@ -7,7 +7,8 @@ module.exports = {
 
     branches: {
         recommendedByProject: [
-            'main'
+            'main',
+            'dev'
         ]
     },
     reporters: {
@@ -38,6 +39,10 @@ module.exports = {
         },
         {
             type: 'npmInstall',   // Not cleaning npm cache
+            runForBranches: [
+                'main',
+                'dev'
+            ],
             options: {
                 report: 'always', // 'always' / 'onIssue' (default)
                 approach: 'ci',   // 'install' / 'ci'
