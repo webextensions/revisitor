@@ -510,6 +510,8 @@ project-monitor/
                 const sanitizeConfig = require('revisitor/sanitizeConfig.js');
 
                 module.exports = {
+                    addAtLocation: 'git-projects',
+
                     reporters: {
                         fallbackByRunner: [
                             {

@@ -1,4 +1,6 @@
 module.exports = {
+    addAtLocation: 'git-projects',
+
     reporters: {
         useByRunner: [
             {
@@ -9,6 +11,7 @@ module.exports = {
     reportDuration: true,
 
     projects: [
-        require('./helpmate.revisitor.js')
+        require('./helpmate.revisitor.js'),
+        require('./note-down.revisitor.js')
     ]
 };

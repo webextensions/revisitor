@@ -1,8 +1,19 @@
 #!/usr/bin/env zx
 
+/* eslint-disable filenames/no-index */
+
+/* globals $, cd */
+
 const path = require('node:path');
+const fs = require('node:fs');
 
 const { program } = require('commander');
+
+// const { marked } = require('marked');
+// const { markedTerminal } = require('marked-terminal');
+// // marked.use(markedTerminal([options][, highlightOptions]));
+// marked.use(markedTerminal());
+// console.log(marked('# Hello \n This is **markdown** printed in the `terminal`'));
 
 const {
     logger,
@@ -10,7 +21,6 @@ const {
 } = require('note-down');
 noteDown.option('showLogLine', false);
 const chalk = noteDown.chalk;
-
 
 program
     .option('--config <config>')
@@ -28,6 +38,7 @@ logger.info(`Loading config from: ${configPath}`);
 const config = require(configPath);
 
 (async () => {
+    const addAtLocation = config.addAtLocation || 'git-projects-cache';
     const reportDuration = config.reportDuration || false;
 
     if (
@@ -51,7 +62,7 @@ const config = require(configPath);
             }
             process.exit(1);
         }
-        logger.info(`\nOperating on project${projectsToOperateOn.length === 1 ? '': 's'}:`);
+        logger.info(`\nOperating on project${projectsToOperateOn.length === 1 ? '' : 's'}:`);
         for (const project of projectsToOperateOn) {
             logger.info(`    * ${project.id}`);
         }
@@ -72,7 +83,7 @@ const config = require(configPath);
                 if (runOnceForProject) {
                     project.branches = [
                         ...project.branches,
-                        '<project-jobs-from-any-branch>'
+                        '<project-level-jobs>'
                     ];
                 }
             }
@@ -98,7 +109,7 @@ const config = require(configPath);
         // logger.json(config);
 
         if (opts.add) {
-            await $`mkdir -p /var/tmp/revisitor`;
+            await $`mkdir -p /var/tmp/revisitor/${addAtLocation}`;
 
             for (const project of config.projects) {
                 const {
@@ -108,14 +119,18 @@ const config = require(configPath);
 
                 const configInDirectory = path.dirname(configPath);
                 const urlOrPath = (
-                    path.isAbsolute(url) ?
-                        url :
-                        path.resolve(configInDirectory, url)
-                );
+                    url.indexOf('git@')   === 0 ||
+                    url.indexOf('git:')   === 0 ||
+                    url.indexOf('ftp:')   === 0 ||
+                    url.indexOf('ftps:')  === 0 ||
+                    url.indexOf('https:') === 0
+                ) ?
+                    url :
+                    path.resolve(configInDirectory, url);
 
-                cd('/var/tmp/revisitor');
+                cd(`/var/tmp/revisitor/${addAtLocation}`);
 
-                const targetDirectoryPath = path.resolve('/var/tmp/revisitor', id);
+                const targetDirectoryPath = path.resolve(`/var/tmp/revisitor/${addAtLocation}`, id);
                 if (fs.existsSync(targetDirectoryPath)) {
                     logger.warn(`Warning: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${id}"`);
                 } else {
@@ -136,26 +151,68 @@ const config = require(configPath);
         }
 
         if (opts.execute) {
+            const logAndStore = function (arr, type, message) {
+                if (type === 'log') {
+                    logger.log(message);
+                } else if (type === 'error') {
+                    logger.error(message);
+                } else if (type === 'warn') {
+                    logger.warn(message);
+                }
+                arr.push([type, message]);
+            };
+
+            /*
+            const flushLogStore = function (arr) {
+                for (const [type, message] of arr) {
+                    if (type === 'log') {
+                        logger.log(message);
+                    } else if (type === 'error') {
+                        logger.error(message);
+                    } else if (type === 'warn') {
+                        logger.warn(message);
+                    }
+                }
+            };
+            /* */
+
+            const logsForAllProjects = [];
+
             for (const project of config.projects) {
+                const statusForProject = {
+                    time: Date.now(),
+                    branches: {}
+                };
                 const {
                     id,
                     title
                 } = project;
 
-                cd('/var/tmp/revisitor');
+                $.verbose = false;
+                cd(`/var/tmp/revisitor/${addAtLocation}`);
                 cd(id);
-                await $`pwd`;
+                $.verbose = true;
+                // await $`pwd`;
 
-                await $`git fetch`;
+                await $`git fetch`.quiet();
 
-                logger.log(`\n➤ Project: ${title}`);
+                const logsForProject = [];
+                // logger.log(`\n➤ Project: ${title}`);
+                logAndStore(logsForProject, 'log', `\n➤ Project: ${title}`);
                 for (const branch of project.branches) {
-                    if (branch !== '<project-jobs-from-any-branch>') {
+                    const logsForBranch = [];
+                    const statusForBranch = {};
+                    statusForProject.branches[branch] = {
+                        jobs: statusForBranch
+                    };
+
+                    if (branch !== '<project-level-jobs>') {
                         await $`git checkout ${branch}`.quiet();
                         await $`git reset --hard origin/${branch}`.quiet();
                     }
 
-                    logger.log(`    ➤ Branch: ${branch}`);
+                    // logger.log(`    ➤ Branch: ${branch}`);
+                    logAndStore(logsForBranch, 'log', `    ➤ Branch: ${branch}`);
 
                     for (const job of project.jobs) {
                         const {
@@ -165,11 +222,11 @@ const config = require(configPath);
                         } = job;
 
                         if (runOnceForProject) {
-                            if (branch !== '<project-jobs-from-any-branch>') {
+                            if (branch !== '<project-level-jobs>') {
                                 continue;
                             }
                         } else {
-                            if (branch === '<project-jobs-from-any-branch>') {
+                            if (branch === '<project-level-jobs>') {
                                 continue;
                             }
                         }
@@ -181,7 +238,15 @@ const config = require(configPath);
                             continue;
                         }
 
-                        logger.log(`        ➤ Job: ${type}`);
+                        const timeBegin = Date.now();
+                        const statusForJobData = {};
+                        const statusForJob = {
+                            status: statusForJobData
+                        };
+                        statusForBranch[job.type + (job.id ? ('-' + job.id) : '')] = statusForJob;
+
+                        // logger.log(`        ➤ Job: ${type}`);
+                        logAndStore(logsForBranch, 'log', `        ➤ Job: ${type}`);
 
                         if (type === 'gitBranchesCount') {
                             const { options } = job;
@@ -196,21 +261,25 @@ const config = require(configPath);
                                 durationToAppend = chalk.dim(` (${t2 - t1}ms)`);
                             }
                             const branchesCount = parseInt(branches.stdout.trim());
+                            statusForJobData.branchesCount = branchesCount;
 
                             if (
                                 options.limit &&
                                 options.limit.error &&
                                 branchesCount >= options.limit.error
                             ) {
-                                logger.error(`            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
+                                // logger.error(`            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
+                                logAndStore(logsForBranch, 'error', `            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
                             } else if (
                                 options.limit &&
                                 options.limit.warn &&
                                 branchesCount >= options.limit.warn
                             ) {
-                                logger.warn(`            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
+                                // logger.warn(`            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
+                                logAndStore(logsForBranch, 'warn', `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
                             } else if (report === 'always') {
-                                logger.log(`            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
+                                // logger.log(`            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
+                                logAndStore(logsForBranch, 'log', `            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
                             }
                         } else if (type === 'npmInstall') {
                             const { options } = job;
@@ -240,12 +309,15 @@ const config = require(configPath);
                                         }
                                     }
                                 }
+                                statusForJobData.worked = 'yes';
                             } catch (err) {
                                 errorOccurred = true;
+                                statusForJobData.worked = 'no';
                             }
 
                             if (errorOccurred) {
-                                logger.error(`            ✗ npm ${approach} failed in ${attemptInstance} attempt(s)`);
+                                // logger.error(`            ✗ npm ${approach} failed in ${attemptInstance} attempt(s)`);
+                                logAndStore(logsForBranch, 'error', `            ✗ npm ${approach} failed in ${attemptInstance} attempt(s)`);
                             } else if (report === 'always') {
                                 let durationToAppend = '';
                                 if (reportDuration) {
@@ -255,12 +327,44 @@ const config = require(configPath);
                                         durationToAppend = chalk.dim(` (${attemptDuration}ms)`);
                                     }
                                 }
-                                logger.log(`            ${chalk.green('✔')} npm ${approach}${durationToAppend}`);
+                                // logger.log(`            ${chalk.green('✔')} npm ${approach}${durationToAppend}`);
+                                logAndStore(logsForBranch, 'log', `            ${chalk.green('✔')} npm ${approach}${durationToAppend}`);
                             }
                         }
+
+                        const timeEnd = Date.now();
+                        statusForJob.duration = timeEnd - timeBegin;
                     }
+
+                    logsForProject.push(...logsForBranch);
                 }
+
+                $.verbose = false;
+                cd(`/var/tmp/revisitor/${addAtLocation}`);
+                await $`touch ${id}.json`;
+                $.verbose = true;
+
+                const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
+                const oldStatusJson = (function () {
+                    try {
+                        return JSON.parse(oldExecutionStatsFileContents);
+                    } catch (err) {
+                        return [];
+                    }
+                })();
+                const newStatusJson = structuredClone(oldStatusJson);
+                newStatusJson.push(statusForProject);
+                fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
+
+                // logger.json(statusForProject);
+                logsForAllProjects.push(...logsForProject);
+
+                // console.log('Flushing the logs for this project');
+                // flushLogStore(logsForProject);
             }
+
+            // console.log('Flushing all the logs');
+            // flushLogStore(logsForAllProjects);
         }
     }
 })();

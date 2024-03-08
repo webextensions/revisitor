@@ -10,7 +10,8 @@
         "revisitor": "./index.js"
     },
     "scripts": {
-        "test": "echo \"Warning: no test specified\"",
+        "lint": "eslint .",
+        "test": "npm run lint",
         "start": "node index.js"
     },
     "repository": {
@@ -46,6 +47,7 @@
     },
     "dependencies": {
         "commander": "^12.0.0",
+        "eslint-config-ironplate": "^0.10.0",
         "note-down": "^1.0.2",
         "zx": "^7.2.3"
     }
