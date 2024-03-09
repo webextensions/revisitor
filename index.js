@@ -37,6 +37,60 @@ const configPath = path.resolve(cwd, opts.config);
 logger.info(`Loading config from: ${configPath}`);
 const config = require(configPath);
 
+const getLogOrWarnOrSkipWarnOrError = function ({
+    report,            // 'always' / 'onIssue' (default)
+    limit,             // <object>
+    deltaDirection,    // 'increment' / 'decrement'
+    count,             // <number> for this execution
+    lastExecutionCount // <number> for the last execution
+}) {
+    if (
+        limit &&
+        limit.error &&
+        (
+            (deltaDirection === 'increment' && count >= limit.error) ||
+            (deltaDirection === 'decrement' && count <= limit.error)
+        )
+    ) {
+        return 'error';
+    } else if (
+        limit &&
+        typeof limit.warn === 'number' &&
+        (
+            (deltaDirection === 'increment' && count >= limit.warn) ||
+            (deltaDirection === 'decrement' && count <= limit.warn)
+        )
+    ) {
+        let computedSkipWarningWhenFollowingLimit = limit.warn;
+
+        if (
+            typeof lastExecutionCount === 'number' &&
+            (
+                (deltaDirection === 'increment' && lastExecutionCount >= limit.warn) ||
+                (deltaDirection === 'decrement' && lastExecutionCount <= limit.warn)
+            )
+        ) {
+            computedSkipWarningWhenFollowingLimit = (
+                (
+                    lastExecutionCount - (lastExecutionCount % limit.warnIncrement)
+                ) +
+                limit.warnIncrement
+            );
+        }
+
+        if (
+            (deltaDirection === 'increment' && count >= computedSkipWarningWhenFollowingLimit) ||
+            (deltaDirection === 'decrement' && count <= computedSkipWarningWhenFollowingLimit)
+        ) {
+            return 'warn';
+        } else {
+            return 'skipWarn';
+        }
+    } else if (report === 'always') {
+        return 'log';
+    }
+};
+
 (async () => {
     const addAtLocation = config.addAtLocation || 'git-projects-cache';
     const reportDuration = config.reportDuration || false;
@@ -280,35 +334,22 @@ const config = require(configPath);
 
                             const lastExecutionBranchesCount = statusForJobData_lastExecution?.branchesCount;
 
-                            if (
-                                options.limit &&
-                                options.limit.error &&
-                                branchesCount >= options.limit.error
-                            ) {
+                            const whatToDo = getLogOrWarnOrSkipWarnOrError({
+                                report,
+                                limit: options.limit,
+                                deltaDirection: 'increment',
+                                count: branchesCount,
+                                lastExecutionCount: lastExecutionBranchesCount
+                            });
+
+                            if (whatToDo === 'error') {
                                 logAndStore(logsForBranch, 'error', `            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
-                            } else if (
-                                options.limit &&
-                                typeof options.limit.warn === 'number' &&
-                                branchesCount >= options.limit.warn
-                            ) {
-                                let computedSkipWarningBelowLimit = options.limit.warn;
-
-                                if (typeof lastExecutionBranchesCount === 'number' && lastExecutionBranchesCount >= options.limit.warn) {
-                                    computedSkipWarningBelowLimit = (
-                                        (
-                                            lastExecutionBranchesCount - (lastExecutionBranchesCount % options.limit.warnIncrement)
-                                        ) +
-                                        options.limit.warnIncrement
-                                    );
-                                }
-
-                                if (branchesCount >= computedSkipWarningBelowLimit) {
-                                    logAndStore(logsForBranch, 'warn', `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
-                                } else {
-                                    logAndStore(logsForBranch, 'log',  `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit - skipped threshold)${durationToAppend}`);
-                                }
-                            } else if (report === 'always') {
-                                logAndStore(logsForBranch, 'log', `            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
+                            } else if (whatToDo === 'warn') {
+                                logAndStore(logsForBranch, 'warn',  `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
+                            } else if (whatToDo === 'skipWarn') {
+                                logAndStore(logsForBranch, 'log',   `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit - skipped threshold)${durationToAppend}`);
+                            } else if (whatToDo === 'log') {
+                                logAndStore(logsForBranch, 'log',   `            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
                             }
                         } else if (type === 'npmInstall') {
                             const { options } = job;
