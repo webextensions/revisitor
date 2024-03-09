@@ -190,6 +190,17 @@ const config = require(configPath);
 
                 $.verbose = false;
                 cd(`/var/tmp/revisitor/${addAtLocation}`);
+
+                const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
+                const oldStatusJson = (function () {
+                    try {
+                        return JSON.parse(oldExecutionStatsFileContents);
+                    } catch (err) {
+                        return [];
+                    }
+                })();
+                const statusForProject_lastExecution = oldStatusJson[oldStatusJson.length - 1];
+
                 cd(id);
                 $.verbose = true;
                 // await $`pwd`;
@@ -200,6 +211,7 @@ const config = require(configPath);
                 // logger.log(`\n➤ Project: ${title}`);
                 logAndStore(logsForProject, 'log', `\n➤ Project: ${title}`);
                 for (const branch of project.branches) {
+                    const statusForBranch_lastExecution = statusForProject_lastExecution?.branches[branch];
                     const logsForBranch = [];
                     const statusForBranch = {};
                     statusForProject.branches[branch] = {
@@ -243,7 +255,10 @@ const config = require(configPath);
                         const statusForJob = {
                             status: statusForJobData
                         };
-                        statusForBranch[job.type + (job.id ? ('-' + job.id) : '')] = statusForJob;
+                        const computedJobId = job.type + (job.id ? ('-' + job.id) : '');
+                        statusForBranch[computedJobId] = statusForJob;
+
+                        const statusForJobData_lastExecution = statusForBranch_lastExecution?.jobs[computedJobId]?.status;
 
                         // logger.log(`        ➤ Job: ${type}`);
                         logAndStore(logsForBranch, 'log', `        ➤ Job: ${type}`);
@@ -263,22 +278,36 @@ const config = require(configPath);
                             const branchesCount = parseInt(branches.stdout.trim());
                             statusForJobData.branchesCount = branchesCount;
 
+                            const lastExecutionBranchesCount = statusForJobData_lastExecution?.branchesCount;
+
                             if (
                                 options.limit &&
                                 options.limit.error &&
                                 branchesCount >= options.limit.error
                             ) {
-                                // logger.error(`            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
                                 logAndStore(logsForBranch, 'error', `            ✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})${durationToAppend}`);
                             } else if (
                                 options.limit &&
-                                options.limit.warn &&
+                                typeof options.limit.warn === 'number' &&
                                 branchesCount >= options.limit.warn
                             ) {
-                                // logger.warn(`            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
-                                logAndStore(logsForBranch, 'warn', `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
+                                let computedSkipWarningBelowLimit = options.limit.warn;
+
+                                if (typeof lastExecutionBranchesCount === 'number' && lastExecutionBranchesCount >= options.limit.warn) {
+                                    computedSkipWarningBelowLimit = (
+                                        (
+                                            lastExecutionBranchesCount - (lastExecutionBranchesCount % options.limit.warnIncrement)
+                                        ) +
+                                        options.limit.warnIncrement
+                                    );
+                                }
+
+                                if (branchesCount >= computedSkipWarningBelowLimit) {
+                                    logAndStore(logsForBranch, 'warn', `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)${durationToAppend}`);
+                                } else {
+                                    logAndStore(logsForBranch, 'log',  `            ⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit - skipped threshold)${durationToAppend}`);
+                                }
                             } else if (report === 'always') {
-                                // logger.log(`            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
                                 logAndStore(logsForBranch, 'log', `            ${chalk.green('✔')} Branches count: ${branchesCount}${durationToAppend}`);
                             }
                         } else if (type === 'npmInstall') {
@@ -344,14 +373,6 @@ const config = require(configPath);
                 await $`touch ${id}.json`;
                 $.verbose = true;
 
-                const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
-                const oldStatusJson = (function () {
-                    try {
-                        return JSON.parse(oldExecutionStatsFileContents);
-                    } catch (err) {
-                        return [];
-                    }
-                })();
                 const newStatusJson = structuredClone(oldStatusJson);
                 newStatusJson.push(statusForProject);
                 fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
