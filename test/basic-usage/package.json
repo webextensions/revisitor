@@ -6,6 +6,7 @@
 
         "revisitor:add":               "revisitor --config ./all.js --add",
         "revisitor:execute":           "revisitor --config ./all.js --execute",
+        "revisitor:start":             "revisitor --config ./all.js --start",
 
         "revisitor:add:helpmate":      "revisitor --config ./all.js --add     helpmate",
         "revisitor:execute:helpmate":  "revisitor --config ./all.js --execute helpmate",

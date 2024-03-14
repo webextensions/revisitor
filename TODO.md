@@ -20,30 +20,11 @@ module.exports = {
     title: 'Revisitor',
     url: 'git@github.com:webextensions/revisitor.git',
 
-    crons: {
-        recommendedByProject: ['30 8 * * *']
-    },
-    branches: {
-        recommendedByProject: [
-            'dev',
-            'main',
-            'prod'
-        ]
-    },
-    reporters: {
-        recommendedByProject: [
-            {
-                type: 'mail', // 'issue' / 'mail' / 'slack' / 'sms' / 'telegram' / 'upload' / 'webhook' / 'whatsapp'
-                ...
-                ...
-            },
-            {
-                type: 'webhook',
-                ...
-                ...
-            }
-        ]
-    },
+    branches: [
+        'dev',
+        'main',
+        'prod'
+    ],
 
     jobs: [
         {
@@ -52,7 +33,6 @@ module.exports = {
             type: 'gitBranchesCount',
             runOnceForProject: true,
             options: {
-                report: 'always', // 'always' / 'onIssue' (default)
                 limit: {
                     warn: 50, // 50 branches
                     warnIncrement: 5, // Warn on 50+, 55+, 60+, ...
@@ -203,7 +183,6 @@ module.exports = {
             // This job will check that the Node.js version is up to date (via .nvmrc or package.json engines field)
             type: 'nodeOutdated',
             options: {
-                report: 'always', // 'always' / 'onIssue' (default)
                 status: {
                     major: 'error', // 'error' / 'warn' (default)
                     minor: 'warn',  // 'error' / 'warn' (default)
@@ -292,7 +271,6 @@ module.exports = {
             // This job will check that the npm dependencies are up to date
             type: 'npmOutdated',
             options: {
-                report: 'always', // 'always' / 'onIssue' (default)
                 status: {
                     major: {
                         warn: 1, // 1 package with major update pending
@@ -318,8 +296,6 @@ module.exports = {
             // This job will check that npm audit passes
             type: 'npmAudit',
             options: {
-                report: 'always', // 'always' / 'onIssue' (default)
-                reportDetailsLevel: 'short', // 'short' / 'detailed' (default)
                 status: {
                     // "info": {},
                     // "low": {},
@@ -463,32 +439,13 @@ module.exports = {
 
 # Configuration
 
-* The properties `crons`, `branches` and `reporters` have options which gets applied as following in the increasing order of importance:
-    * `fallbackByRunner`
-    * `recommendedByProject`
-    * `useByRunner`
-
-    and they are merged as per the following order of increasing importance:
-    * runner's configuration (eg: `reporters.fallbackByRunner`)
-    * project's configuration (eg: `reporters.recommendedByProject`)
-    * runner's configuration (eg: `reporters.useByRunner`)
-
-    The project's `.revisitor.js` file can have the following properties:
-    * `crons.recommendedByProject`
-    * `branches.recommendedByProject`
-    * `reporters.recommendedByProject`
-
-    and it shouldn't specify the `fallbackByRunner` or `useByRunner` properties.
-
-    Use `const sanitizeConfig = require('revisitor/sanitizeConfig.js');` to remove the properties that are not allowed in the project's configuration file (`fallbackByRunner` and `useByRunner`).
-
 # Contents
 
 ```
 project-monitor/
     package.json
         // dependencies: {
-        //     "revisitor": "0.0.1"
+        //     "revisitor": "^0.0.1"
         // },
         // "scripts": {
         //     "revisitor:add":               "revisitor --config ./projects/index.js --add    ",
@@ -506,14 +463,23 @@ project-monitor/
         project-3.revisitor.js (configuration)
         index.js
             /*
-                // `sanitizeConfig` would remove the properties that are not allowed in the project's configuration file (`fallbackByRunner` and `useByRunner`)
-                const sanitizeConfig = require('revisitor/sanitizeConfig.js');
-
                 module.exports = {
                     addAtLocation: 'git-projects',
 
-                    reporters: {
-                        fallbackByRunner: [
+                    runAndReport: {
+                        crons: ['0 0 8 * * *'], // Every day at 8:00:00 AM
+
+                        reportContents: {
+                            job:     'onIssue', // 'always' (default) / 'onIssue'
+                            project: 'onIssue'  // 'always' (default) / 'onIssue'
+                        },
+                        reportSend: {
+                            project: 'always', // 'always' / 'onIssue' (default) / 'no'
+                            runner:  'no'      // 'always' / 'onIssue' / 'no' (default) ; (runner report = combined report)
+                        },
+
+                        reportDuration: true,
+                        reporters: [
                             {
                                 type: 'mail', // 'issue' / 'mail' / 'slack' / 'sms' / 'telegram' / 'upload' / 'webhook' / 'whatsapp'
                                 ...
@@ -526,18 +492,13 @@ project-monitor/
                             }
                         ]
                     },
-                    reportDuration: true,
+
                     projects: [
-                        sanitizeConfig(require("./helpmate.revisitor.js")),
-                        sanitizeConfig(require("./project-2.revisitor.js")),
+                        require("./helpmate.revisitor.js"),
+                        require("./project-2.revisitor.js"),
                         {
-                            ...sanitizeConfig(require("./project-3.revisitor.js")),
-                            branches: {
-                                useByRunner: ['master']
-                            },
-                            crons: {
-                                useByRunner: ['0 8 * * *']
-                            },
+                            ...require("./project-3.revisitor.js"),
+                            branches: ['master']
                         }
                     ]
                 };
