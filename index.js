@@ -180,7 +180,11 @@ const submitReports = async function ({
         switch (reporter.type) {
             case 'slack': {
                 const webhookUrl = reporter.url;
-                const message = generatedReport;
+
+                let message = generatedReport;
+                // By default, `✔` gets converted to `:heavy_check_mark:` which doesn't look great, hence, converting it to `✓`
+                message = message.replaceAll('✔', '✓');
+                message = message.replaceAll('⚠️', '!');
 
                 const [err, warning, response] = await sendSlackMessage({
                     webhookUrl,
