@@ -2,7 +2,7 @@
     "name": "basic-usage",
     "version": "0.0.1",
     "scripts": {
-        "revisitor:execute:inspect-brk": "node --inspect-brk ../../node_modules/.bin/zx ./node_modules/.bin/revisitor --config ./all.js --execute",
+        "revisitor:execute:inspect-brk": "LOG_LEVEL=trace node --inspect-brk ./node_modules/.bin/revisitor --config ./all.js --execute",
 
         "revisitor:add":               "revisitor --config ./all.js --add",
         "revisitor:execute":           "revisitor --config ./all.js --execute",
@@ -15,6 +15,7 @@
         "revisitor:execute:note-down": "revisitor --config ./all.js --execute note-down"
     },
     "dependencies": {
-        "revisitor": "../../"
+        "revisitor": "../../",
+        "dotenv": "^16.4.5"
     }
 }
