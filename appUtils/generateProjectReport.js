@@ -1,14 +1,14 @@
 const { formatLine } = require('./formatLine.js');
-const { notifications } = require('../utils/notifications/notifications.js');
+// const { notifications } = require('../utils/notifications/notifications.js');
 
 const generateProjectReport = function ({ project, runner }, reportContents, format) {
     const arrReport = [];
 
-    if (runner) {
-        notifications.error('Revisitor', 'TODO: Unhandled case for report generation. Exiting!');
-        console.error(' ✗ TODO: Unhandled case for report generation. Exiting!');
-        process.exit(1);
-    }
+    // if (runner) {
+    //     notifications.error('Revisitor', 'TODO: Unhandled case for report generation. Exiting!');
+    //     console.error(' ✗ TODO: Unhandled case for report generation. Exiting!');
+    //     process.exit(1);
+    // }
 
     for (const branch of project.reports) {
         for (const job of branch.reports) {

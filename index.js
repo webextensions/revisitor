@@ -15,8 +15,10 @@ noteDown.option('showLogLine', false);
 const schedule = require('node-schedule');
 
 const { pinoLogger } = require('./utils/pinoLogger.js');
-const { formatLine } = require('./utils/formatLine.js');
-const { generateProjectReport } = require('./utils/generateProjectReport.js');
+
+const { formatLine } = require('./appUtils/formatLine.js');
+const { generateProjectReport } = require('./appUtils/generateProjectReport.js');
+const { getLogOrWarnOrSkipWarnOrError } = require('./appUtils/getLogOrWarnOrSkipWarnOrError.js');
 
 const { sendSlackMessage } = require('./reporters/slack/sendSlackMessage.js');
 const { sendMail } = require('./reporters/mail/sendMail.js');
@@ -51,64 +53,12 @@ const logAndStore = function (arr, reportType, message) {
     arr.push([reportType, message]);
 };
 
-const getLogOrWarnOrSkipWarnOrError = function ({
-    reportContents_job, // 'always' (default) / 'onIssue'
-    limit,              // <object>
-    deltaDirection,     // 'increment' / 'decrement'
-    count,              // <number> for this execution
-    lastExecutionCount  // <number> for the last execution
-}) {
-    if (
-        limit &&
-        limit.error &&
-        (
-            (deltaDirection === 'increment' && count >= limit.error) ||
-            (deltaDirection === 'decrement' && count <= limit.error)
-        )
-    ) {
-        return 'error';
-    } else if (
-        limit &&
-        typeof limit.warn === 'number' &&
-        (
-            (deltaDirection === 'increment' && count >= limit.warn) ||
-            (deltaDirection === 'decrement' && count <= limit.warn)
-        )
-    ) {
-        let computedSkipWarningWhenFollowingLimit = limit.warn;
-
-        if (
-            typeof lastExecutionCount === 'number' &&
-            (
-                (deltaDirection === 'increment' && lastExecutionCount >= limit.warn) ||
-                (deltaDirection === 'decrement' && lastExecutionCount <= limit.warn)
-            )
-        ) {
-            computedSkipWarningWhenFollowingLimit = (
-                (
-                    lastExecutionCount - (lastExecutionCount % limit.warnIncrement)
-                ) +
-                limit.warnIncrement
-            );
-        }
-
-        if (
-            (deltaDirection === 'increment' && count >= computedSkipWarningWhenFollowingLimit) ||
-            (deltaDirection === 'decrement' && count <= computedSkipWarningWhenFollowingLimit)
-        ) {
-            return 'warn';
-        } else {
-            return 'skipWarn';
-        }
-    } else {
-        return 'log';
-    }
-};
-
 const submitReports = async function ({
     reportContents_job,
+    reportContents_branch,
     reportContents_project,
 
+    reportSend_branch,
     reportSend_project,
     reportSend_runner,
 
@@ -119,34 +69,16 @@ const submitReports = async function ({
     forProject,
     forRunner
 }) {
-    // console.log('reporters:');
-    // logger.json(reporters);
-
-    // console.log('forProject:');
-    // logger.json(forProject);
-
-    // console.log('forRunner:');
-    // logger.json(forRunner);
-
     if (!forProject && !forRunner) {
         console.error(chalk.red(` ✗ Unknown report type. Exiting...`));
         process.exit(1);
     }
 
-    debugger;
-
-    // const reportConfig = {
     const reportContents = {
-        // 'always' (default) / 'onSkipWarn+' / 'onWarn+' / 'onError'
-        job:     'always',
-        // job:     'onSkipWarn+',
-        // job:     'onWarn+',
-
-        // 'always' (default) / 'onSkipWarn+' / 'onWarn+' / 'onError'
-        project: 'onSkipWarn+'
+        job:     reportContents_job,
+        branch:  reportContents_branch,
+        project: reportContents_project
     };
-
-    debugger;
 
     for (const reporter of reporters) {
         let formatToUse = null;
@@ -248,8 +180,10 @@ const mainExecution = async function ({
     addAtLocation,
 
     reportContents_job,
+    reportContents_branch,
     reportContents_project,
 
+    reportSend_branch,
     reportSend_project,
     reportSend_runner,
 
@@ -476,8 +410,10 @@ const mainExecution = async function ({
         if (reportSend_project !== 'no') {
             await submitReports({
                 reportContents_job,
+                reportContents_branch,
                 reportContents_project,
 
+                reportSend_branch,
                 reportSend_project,
                 reportSend_runner,
 
@@ -493,8 +429,10 @@ const mainExecution = async function ({
     if (reportSend_runner !== 'no') {
         await submitReports({
             reportContents_job,
+            reportContents_branch,
             reportContents_project,
 
+            reportSend_branch,
             reportSend_project,
             reportSend_runner,
 
@@ -507,6 +445,16 @@ const mainExecution = async function ({
     }
 };
 
+const validateReportConfigOption = function (reportContents, fallbackValue) {
+    const validValues = ['always', 'onSkipWarn+', 'onWarn+', 'onError'];
+
+    if (validValues.includes(reportContents)) {
+        return reportContents;
+    }
+
+    return fallbackValue;
+};
+
 (async () => {
     const { $ } = await import('execa');
 
@@ -516,11 +464,13 @@ const mainExecution = async function ({
 
     const crons                  = runAndReport.crons                   || [];
 
-    const reportContents_job     = runAndReport.reportContents?.job     || 'always';
-    const reportContents_project = runAndReport.reportContents?.project || 'always';
+    const reportContents_job     = validateReportConfigOption(runAndReport.reportContents?.job,     'onWarn+');
+    const reportContents_branch  = validateReportConfigOption(runAndReport.reportContents?.branch,  'onWarn+');
+    const reportContents_project = validateReportConfigOption(runAndReport.reportContents?.project, 'onWarn+');
 
-    const reportSend_project     = runAndReport.reportSend?.project     || 'onWarn+';
-    const reportSend_runner      = runAndReport.reportSend?.runner      || 'no';
+    const reportSend_branch      = validateReportConfigOption(runAndReport.reportSend?.branch,      'onError');
+    const reportSend_project     = validateReportConfigOption(runAndReport.reportSend?.project,     'onError');
+    const reportSend_runner      = validateReportConfigOption(runAndReport.reportSend?.runner,      'onError');
 
     const reportDuration         = runAndReport.reportDuration          || false;
     const reporters              = runAndReport.reporters               || [];
@@ -618,9 +568,11 @@ const mainExecution = async function ({
 
                 addAtLocation,
 
-                reportContents_job,
                 reportContents_project,
+                reportContents_branch,
+                reportContents_job,
 
+                reportSend_branch,
                 reportSend_project,
                 reportSend_runner,
 
