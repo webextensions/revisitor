@@ -46,6 +46,7 @@
         "access": "public"
     },
     "dependencies": {
+        "@pinojs/json-colorizer": "^4.0.0",
         "@sendgrid/mail": "^8.1.3",
         "commander": "^12.1.0",
         "execa": "^9.2.0",

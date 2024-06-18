@@ -1,5 +1,6 @@
 const pino = require('pino');
 const pinoPretty = require('pino-pretty');
+const jsonColorizer = require('@pinojs/json-colorizer'); // https://github.com/pinojs/pino-pretty/issues/229#issuecomment-986053242
 
 const stripAnsi = require('strip-ansi');
 
@@ -47,4 +48,14 @@ const pinoLogger = pino({
     })(LOG_LEVEL)
 }, pinoPrettyStream);
 
-module.exports = { pinoLogger };
+const jsonBeautifier = function (json) {
+    const jsonStr = JSON.stringify(json, null, 4);
+    const colorized = jsonColorizer(jsonStr);
+    return colorized;
+};
+
+module.exports = {
+    pinoLogger,
+    pinoJsonColorizer: jsonColorizer,
+    pinoJsonBeautifier: jsonBeautifier
+};

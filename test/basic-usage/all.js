@@ -5,18 +5,20 @@ const dotenv = require('dotenv');
 const pathEnvLocal = path.resolve(__dirname, '.env');
 const pathEnvProd  = path.resolve(__dirname, '.prod.env');
 
-let result = dotenv.config({
-    path: pathEnvLocal
+let pathEnv = pathEnvLocal;
+let result;
+
+result = dotenv.config({
+    path: pathEnv
 });
 
-if (!result.error) {
-    console.log('Loaded environment variables from:', pathEnvLocal);
-} else {
+if (result.error) {
+    pathEnv = pathEnvProd;
     result = dotenv.config({
-        path: pathEnvProd
+        path: pathEnv // Assuming that this file, represented by `pathEnv` (`pathEnvProd`), always exists and it is readable and it will never lead to a situation where results.error has a truthy value
     });
-    console.log('Loaded environment variables from:', pathEnvProd);
 }
+console.log('Loaded environment variables from:', pathEnv);
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
@@ -27,6 +29,7 @@ const MAIL_CC_LIST      = (process.env.MAIL_CC_LIST  && process.env.MAIL_CC_LIST
 const MAIL_BCC_LIST     = (process.env.MAIL_BCC_LIST && process.env.MAIL_BCC_LIST.split(',')) || undefined;
 
 module.exports = {
+    title: 'health-checks',
     addAtLocation: 'git-projects',
 
     runAndReport: {
@@ -40,9 +43,9 @@ module.exports = {
         reportSend: {
             branch:  'no',      // 'always' / 'onSkipWarn+' / 'onWarn+' / 'onError' (default) / 'no'
             // project: 'no',      // 'always' / 'onSkipWarn+' / 'onWarn+' / 'onError' (default) / 'no'
-            project: 'always',      // 'always' / 'onSkipWarn+' / 'onWarn+' / 'onError' (default) / 'no'
+            project: 'always',
             // runner:  'always'   // 'always' (default) / 'onSkipWarn+' / 'onWarn+' / 'onError' / 'no' ; (runner report = combined report)
-            runner:  'no'   // 'always' (default) / 'onSkipWarn+' / 'onWarn+' / 'onError' / 'no' ; (runner report = combined report)
+            runner:  'no'
         },
 
         reportDuration: true,

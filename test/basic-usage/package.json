@@ -3,6 +3,7 @@
     "version": "0.0.1",
     "scripts": {
         "revisitor:execute:inspect-brk": "LOG_LEVEL=trace node --inspect-brk ./node_modules/.bin/revisitor --config ./all.js --execute",
+        "revisitor:execute:trace":       "LOG_LEVEL=trace                                        revisitor --config ./all.js --execute",
 
         "revisitor:add":               "revisitor --config ./all.js --add",
         "revisitor:execute":           "revisitor --config ./all.js --execute",
