@@ -493,14 +493,23 @@ const mainExecution = async function ({
     }
 };
 
-const validateReportConfigOption = function (reportContents, fallbackValue) {
-    const validValues = ['always', 'onSkipWarn+', 'onWarn+', 'onError'];
-
-    if (validValues.includes(reportContents)) {
-        return reportContents;
+const validateWithFallback = function (value, allowedValues, fallbackValue) {
+    if (allowedValues.includes(value)) {
+        return value;
     }
-
     return fallbackValue;
+};
+
+const validateReportContentsOption = function (reportContents, fallbackValue) {
+    const allowedValues = ['always', 'onSkipWarn+', 'onWarn+', 'onError'];
+    const value = validateWithFallback(reportContents, allowedValues, fallbackValue);
+    return value;
+};
+
+const validateReportSendOption = function (reportSend, fallbackValue) {
+    const allowedValues = ['always', 'onSkipWarn+', 'onWarn+', 'onError', 'no'];
+    const value = validateWithFallback(reportSend, allowedValues, fallbackValue);
+    return value;
 };
 
 (async () => {
@@ -512,13 +521,13 @@ const validateReportConfigOption = function (reportContents, fallbackValue) {
 
     const crons                  = runAndReport.crons          || [];
 
-    const reportContents_project = validateReportConfigOption(runAndReport.reportContents?.project, 'onWarn+');
-    const reportContents_branch  = validateReportConfigOption(runAndReport.reportContents?.branch,  'onWarn+');
-    const reportContents_job     = validateReportConfigOption(runAndReport.reportContents?.job,     'onWarn+');
+    const reportContents_project = validateReportContentsOption(runAndReport.reportContents?.project, 'onWarn+');
+    const reportContents_branch  = validateReportContentsOption(runAndReport.reportContents?.branch,  'onWarn+');
+    const reportContents_job     = validateReportContentsOption(runAndReport.reportContents?.job,     'onWarn+');
 
-    const reportSend_runner      = validateReportConfigOption(runAndReport.reportSend?.runner,      'always' );
-    const reportSend_project     = validateReportConfigOption(runAndReport.reportSend?.project,     'onError');
-    const reportSend_branch      = validateReportConfigOption(runAndReport.reportSend?.branch,      'onError');
+    const reportSend_runner      = validateReportSendOption(runAndReport.reportSend?.runner,  'always' );
+    const reportSend_project     = validateReportSendOption(runAndReport.reportSend?.project, 'onError');
+    const reportSend_branch      = validateReportSendOption(runAndReport.reportSend?.branch,  'onError');
 
     const reportDuration         = runAndReport.reportDuration || false;
     const reporters              = runAndReport.reporters      || [];
