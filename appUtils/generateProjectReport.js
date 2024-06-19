@@ -9,6 +9,10 @@ const generateProjectReport = function (
     reportContents,
     format
 ) {
+    forRunner  = structuredClone(forRunner);
+    forProject = structuredClone(forProject);
+    forBranch  = structuredClone(forBranch);
+
     const arrReport = [];
 
     const arrProjects = (
@@ -19,6 +23,14 @@ const generateProjectReport = function (
         [forProject]
     );
     for (const project of arrProjects) {
+        if (
+            forProject &&
+            forProject.id &&
+            forProject.id !== project.id
+        ) {
+            continue;
+        }
+
         const arrBranches = (
             (
                 project?.reports?.length &&
@@ -27,6 +39,14 @@ const generateProjectReport = function (
             [forBranch]
         );
         for (const branch of arrBranches) {
+            if (
+                forBranch &&
+                forBranch.branch &&
+                forBranch.branch !== branch.branch
+            ) {
+                continue;
+            }
+
             for (const job of branch.reports) {
                 for (const report of job.reports) {
                     const [reportType] = report;

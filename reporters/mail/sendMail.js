@@ -1,10 +1,6 @@
 const sgMail = require('@sendgrid/mail');
 
-const {
-    logger,
-    noteDown
-} = require('note-down');
-const chalk = noteDown.chalk;
+const { logger } = require('note-down');
 
 const sendMail = async function (
     {
@@ -31,8 +27,7 @@ const sendMail = async function (
 
     try {
         if (process.env.DISABLE_MAIL === 'yes') {
-            console.warn(chalk.yellow(`\n ⚠️ DISABLE_MAIL=yes (Mail is disabled) ; Skipping sending mail`));
-            return [null, 'Sending mail is disabled'];
+            return [null, 'DISABLE_MAIL=yes (Mail is disabled) ; Skipping sending mail'];
         } else {
             const status = await sgMail.send(msg);
             return [null, null, status];

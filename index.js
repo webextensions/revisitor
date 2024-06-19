@@ -148,7 +148,7 @@ const submitReports = async function ({
                     console.error(chalk.red(`      Status: ${err.response?.status}`));
                     console.error(chalk.red(`      Body: ${err.response?.body}`));
                 } else if (warning) {
-                    console.warn(chalk.yellow(' ⚠️ Warning in posting message to Slack:'), warning);
+                    console.warn(chalk.verbose(' ⚠️ Warning in posting message to Slack:'), warning);
                 } else {
                     console.info(`\n ${chalk.green('✔')} Message posted to Slack successfully:`, response.body);
                 }
