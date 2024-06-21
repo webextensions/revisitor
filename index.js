@@ -61,13 +61,13 @@ const submitReports = async function ({
     reportContents_branch,
     reportContents_job,
 
-    reportSend_runner,
-    reportSend_project,
-    reportSend_branch,
+    // reportSend_runner,  // TODO: Implement
+    // reportSend_project, // TODO: Implement
+    // reportSend_branch,  // TODO: Implement
 
     reporters,
 
-    runAndReport,
+    // runAndReport,       // TODO: Implement
 
     forRunner,
     forProject,

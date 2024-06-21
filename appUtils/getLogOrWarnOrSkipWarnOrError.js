@@ -1,5 +1,5 @@
 const getLogOrWarnOrSkipWarnOrError = function ({
-    reportContents_job, // 'always' (default) / 'onIssue'
+    // reportContents_job, // 'always' (default) / 'onIssue' // TODO: Implement
     limit,              // <object>
     deltaDirection,     // 'increment' / 'decrement'
     count,              // <number> for this execution
