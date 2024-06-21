@@ -1,28 +1,32 @@
-#!/usr/bin/env zx
+#!/usr/bin/env node
 
 /* eslint-disable filenames/no-index */
 
-/* globals $, cd */
-
 const path = require('node:path');
 const fs = require('node:fs');
-
-const { program } = require('commander');
-
-const schedule = require('node-schedule');
-
-// const { marked } = require('marked');
-// const { markedTerminal } = require('marked-terminal');
-// // marked.use(markedTerminal([options][, highlightOptions]));
-// marked.use(markedTerminal());
-// console.log(marked('# Hello \n This is **markdown** printed in the `terminal`'));
 
 const {
     logger,
     noteDown
 } = require('note-down');
-noteDown.option('showLogLine', false);
 const chalk = noteDown.chalk;
+noteDown.option('showLogLine', false);
+
+const schedule = require('node-schedule');
+
+const {
+    pinoLogger,
+    pinoJsonBeautifier
+} = require('./utils/pinoLogger.js');
+
+const { formatLine } = require('./appUtils/formatLine.js');
+const { generateProjectReport } = require('./appUtils/generateProjectReport.js');
+const { getLogOrWarnOrSkipWarnOrError } = require('./appUtils/getLogOrWarnOrSkipWarnOrError.js');
+
+const { sendSlackMessage } = require('./reporters/slack/sendSlackMessage.js');
+const { sendMail } = require('./reporters/mail/sendMail.js');
+
+const { program } = require('commander');
 
 program
     .option('--config  <config>')
@@ -37,180 +41,182 @@ program.parse();
 const opts = program.opts();
 
 const cwd = process.cwd();
-const configPath = path.resolve(cwd, opts.config);
+pinoLogger.debug(`Current working directory: ${cwd}`);
 
-logger.info(`Loading config from: ${configPath}`);
+const configPath = path.resolve(cwd, opts.config);
+pinoLogger.info(`Loading configuration from: ${configPath}`);
 const config = require(configPath);
 
-const logAndStore = function (arr, type, message) {
-    let finalMessage = '';
+const logAndStore = function (arr, reportType, message) {
+    const format = 'console';
+    const formattedMessage = formatLine(format, reportType, message);
 
-    if (typeof message === 'string') {
-        finalMessage = message;
-    } else if (Array.isArray(message)) {
-        for (const part of message) {
-            if (part && typeof part === 'object') {
-                const unwrappedPart = part.message || '';
-                let wrappedPart = unwrappedPart;
+    console.log(formattedMessage);
 
-                if (part.color) {
-                    wrappedPart = chalk[part.color](wrappedPart);
-                }
-                if (part.dim) {
-                    wrappedPart = chalk.dim(wrappedPart);
-                }
-                if (part.bold) {
-                    wrappedPart = chalk.bold(wrappedPart);
-                }
-
-                if (part.indentLevel) {
-                    wrappedPart = '    '.repeat(part.indentLevel) + wrappedPart;
-                }
-
-                finalMessage += wrappedPart;
-            } else {
-                finalMessage += part;
-            }
-        }
-    }
-
-    console.log(finalMessage);
-
-    arr.push([type, message]);
-};
-
-/*
-const flushLogStore = function (arr) {
-    for (const [type, message] of arr) {
-        if (type === 'log') {
-            logger.log(message);
-        } else if (type === 'error') {
-            logger.error(message);
-        } else if (type === 'warn') {
-            logger.warn(message);
-        }
-    }
-};
-/* */
-
-const getLogOrWarnOrSkipWarnOrError = function ({
-    reportContents_job, // 'always' (default) / 'onIssue'
-    limit,              // <object>
-    deltaDirection,     // 'increment' / 'decrement'
-    count,              // <number> for this execution
-    lastExecutionCount  // <number> for the last execution
-}) {
-    if (
-        limit &&
-        limit.error &&
-        (
-            (deltaDirection === 'increment' && count >= limit.error) ||
-            (deltaDirection === 'decrement' && count <= limit.error)
-        )
-    ) {
-        return 'error';
-    } else if (
-        limit &&
-        typeof limit.warn === 'number' &&
-        (
-            (deltaDirection === 'increment' && count >= limit.warn) ||
-            (deltaDirection === 'decrement' && count <= limit.warn)
-        )
-    ) {
-        let computedSkipWarningWhenFollowingLimit = limit.warn;
-
-        if (
-            typeof lastExecutionCount === 'number' &&
-            (
-                (deltaDirection === 'increment' && lastExecutionCount >= limit.warn) ||
-                (deltaDirection === 'decrement' && lastExecutionCount <= limit.warn)
-            )
-        ) {
-            computedSkipWarningWhenFollowingLimit = (
-                (
-                    lastExecutionCount - (lastExecutionCount % limit.warnIncrement)
-                ) +
-                limit.warnIncrement
-            );
-        }
-
-        if (
-            (deltaDirection === 'increment' && count >= computedSkipWarningWhenFollowingLimit) ||
-            (deltaDirection === 'decrement' && count <= computedSkipWarningWhenFollowingLimit)
-        ) {
-            return 'warn';
-        } else {
-            return 'skipWarn';
-        }
-    } else {
-        return 'log';
-    }
+    arr.push([reportType, message]);
 };
 
 const submitReports = async function ({
-    reportContents_job,
     reportContents_project,
+    reportContents_branch,
+    reportContents_job,
 
-    reportSend_project,
     reportSend_runner,
+    reportSend_project,
+    reportSend_branch,
 
     reporters,
 
+    runAndReport,
+
+    forRunner,
     forProject,
-    forRunner
+    forBranch
 }) {
-    // console.log('reporters:');
-    // logger.json(reporters);
+    if (!forRunner) {
+        console.error(chalk.red(` ✗ Unknown report type. Exiting...`));
+        process.exit(1);
+    }
 
-    // console.log('forProject:');
-    // logger.json(forProject);
+    const reportContents = {
+        project: reportContents_project,
+        branch:  reportContents_branch,
+        job:     reportContents_job
+    };
 
-    // console.log('forRunner:');
-    // logger.json(forRunner);
+    for (const reporter of reporters) {
+        let formatToUse = null;
 
-    /*
-    for (const reportForProject of reportsForProjects) {
-        console.log('Report for project:');
-        console.log(reportForProject);
+        switch (reporter.type) {
+            case 'slack': {
+                formatToUse = 'markdown';
+                break;
+            }
+            case 'mail': {
+                formatToUse = 'mail';
+                break;
+            }
+            default: {
+                console.error(chalk.red(` ✗ Unknown reporter type`));
+            }
+        }
 
-        for (const reporter of reporters) {
-            switch (reporter.type) {
-                case 'console': {
-                    console.log('TODO: Implement console reporter');
-                    break;
+        const generatedReport = generateProjectReport(
+            {
+                forRunner,
+                forProject,
+                forBranch
+            },
+            reportContents,
+            formatToUse
+        );
+
+        pinoLogger.debug('Generated report:');
+        pinoLogger.debug(generatedReport);
+
+        if (!generatedReport) {
+            return;
+        }
+
+        const messageTitle = [
+            'Revisitor',
+            ([
+                forRunner?.title,
+                forProject?.title,
+                forBranch?.branch
+            ].filter((x) => x).join('/'))
+        ].filter((x) => x).join(' - ');
+
+        switch (reporter.type) {
+            case 'slack': {
+                const webhookUrl = reporter.url;
+
+                let message = generatedReport;
+                // By default, `✔` gets converted to `:heavy_check_mark:` which doesn't look great, hence, converting it to `✓`
+                message = message.replaceAll('✔', '✓');
+                message = message.replaceAll('⚠️', '!');
+
+                message = messageTitle + '\n\n' + message;
+
+                const [err, warning, response] = await sendSlackMessage({
+                    webhookUrl,
+                    message
+                });
+
+                if (err) {
+                    console.error(chalk.red(' ✗ Error in posting message to Slack:'));
+                    console.error(chalk.red(`      Status: ${err.response?.status}`));
+                    console.error(chalk.red(`      Body: ${err.response?.body}`));
+                } else if (warning) {
+                    console.warn(chalk.verbose(' ⚠️ Warning in posting message to Slack:'), warning);
+                } else {
+                    console.info(`\n ${chalk.green('✔')} Message posted to Slack successfully:`, response.body);
                 }
-                case 'file': {
-                    console.log('TODO: Implement file reporter');
-                    break;
+
+                break;
+            }
+            case 'mail': {
+                const provider = reporter.provider;
+
+                if (provider === 'sendgrid') {
+                    const [err, warning, status] = await sendMail(
+                        {
+                            apiKey: reporter.config.SENDGRID_API_KEY
+                        },
+                        {
+                            from: reporter.config.MAIL_FROM,
+                            to: reporter.config.MAIL_TO_LIST,
+                            cc: reporter.config.MAIL_CC_LIST,
+                            bcc: reporter.config.MAIL_BCC_LIST,
+                            subject: messageTitle,
+                            body: generatedReport
+                        }
+                    );
+                    if (err) {
+                        console.error(chalk.red(' ✗ Error in mailing message:'), err);
+                    } else if (warning) {
+                        console.warn(chalk.yellow(' ⚠️ Warning in mailing message:'), warning);
+                    } else {
+                        console.info(`\n ${chalk.green('✔')} Message mailed successfully:`, status);
+                    }
+                } else {
+                    console.error(chalk.red(' ✗ Unknown mail provider'));
                 }
-                case 'mail': {
-                    console.log('TODO: Implement mail reporter');
-                    break;
-                }
-                default: {
-                    console.log('Unknown reporter type');
-                }
+
+                break;
+            }
+            default: {
+                console.error(chalk.red(` ✗ Unknown reporter type`));
             }
         }
     }
-    /* */
 };
 
 const mainExecution = async function ({
+    $,
+
+    config,
+
+    source,
+
     addAtLocation,
 
-    reportContents_job,
     reportContents_project,
+    reportContents_branch,
+    reportContents_job,
 
-    reportSend_project,
     reportSend_runner,
+    reportSend_project,
+    reportSend_branch,
 
     reportDuration,
     reporters,
 
+    runAndReport,
     projects
 }) {
     const forRunner = {
+        title: config.title || 'Task Runner',
         time: Date.now(),
         reports: []
     };
@@ -231,15 +237,12 @@ const mainExecution = async function ({
             reports: []
         };
 
-        // const logsForProject = [];
-
         const forProject_status = {
             time: Date.now(),
             branches: {}
         };
 
-        $.verbose = false;
-        cd(`/var/tmp/revisitor/${addAtLocation}`);
+        process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
 
         const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
         const oldStatusJson = (function () {
@@ -251,11 +254,11 @@ const mainExecution = async function ({
         })();
         const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
 
-        cd(id);
-        $.verbose = true;
-        // await $`pwd`;
+        process.chdir(id);
+        // await $({ stdout: 'inherit' })`pwd`; // DEBUG-HELPER:
+        await $`pwd`;
 
-        await $`git fetch`.quiet();
+        await $`git fetch`;
 
         for (const branch of project.branches) {
             logger.log(`    ➤ Branch: ${branch}`);
@@ -274,9 +277,9 @@ const mainExecution = async function ({
                 jobs: forBranch_status
             };
 
-            if (branch !== '<project-level-jobs>') {
-                await $`git checkout ${branch}`.quiet();
-                await $`git reset --hard origin/${branch}`.quiet();
+            if (branch !== '{project-level-jobs}') {
+                await $`git checkout ${branch}`;
+                await $`git reset --hard origin/${branch}`;
             }
 
             for (const job of project.jobs) {
@@ -288,11 +291,11 @@ const mainExecution = async function ({
                 const computedJobId = job.type + (job.id ? ('-' + job.id) : '');
 
                 if (runOnceForProject) {
-                    if (branch !== '<project-level-jobs>') {
+                    if (branch !== '{project-level-jobs}') {
                         continue;
                     }
                 } else {
-                    if (branch === '<project-level-jobs>') {
+                    if (branch === '{project-level-jobs}') {
                         continue;
                     }
                 }
@@ -327,12 +330,12 @@ const mainExecution = async function ({
                     const { options } = job;
 
                     const t1 = Date.now();
-                    await $`git remote prune origin`.quiet();
-                    const branches = await $`git branch -r | grep -v "origin/HEAD" | wc -l`.quiet();
+                    await $`git remote prune origin`;
+                    const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
                     const t2 = Date.now();
                     let durationToAppend = '';
                     if (reportDuration) {
-                        durationToAppend = { dim: true, message: ` (${t2 - t1}ms)` };
+                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
                     }
                     const branchesCount = parseInt(branches.stdout.trim());
                     forJob_statusData.branchesCount = branchesCount;
@@ -348,13 +351,13 @@ const mainExecution = async function ({
                     });
 
                     if (whatToDo === 'error') {
-                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red', message: `✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})` }, durationToAppend]);
+                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red', message: `✗ Current branches count (${branchesCount}) >=  error limit (${options.limit.error})` }, ...durationToAppend]);
                     } else if (whatToDo === 'warn') {
-                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)` }, durationToAppend]);
+                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit)` }, ...durationToAppend]);
                     } else if (whatToDo === 'skipWarn') {
-                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 }, `✔ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit - skipped threshold)`, durationToAppend]);
+                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 }, `✔ Branches count: ${branchesCount} >=  ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
                     } else {
-                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` Branches count: ${branchesCount}`, durationToAppend]);
+                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` Branches count: ${branchesCount}`, ...durationToAppend]);
                     }
                 } else if (type === 'npmInstall') {
                     const { options } = job;
@@ -372,7 +375,7 @@ const mainExecution = async function ({
                             try {
                                 attemptInstance = i + 1;
                                 const t1 = Date.now();
-                                await $`npm ${approach}`.quiet();
+                                await $`npm ${approach}`;
                                 const t2 = Date.now();
                                 attemptDuration = t2 - t1;
                                 totalDuration += attemptDuration;
@@ -395,12 +398,12 @@ const mainExecution = async function ({
                         let durationToAppend = '';
                         if (reportDuration) {
                             if (attemptInstance > 1) {
-                                durationToAppend = { dim: true, message: ` (${attemptDuration}ms / ${totalDuration}ms)` };
+                                durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms / ${totalDuration}ms)` }];
                             } else {
-                                durationToAppend = { dim: true, message: ` (${attemptDuration}ms)` };
+                                durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms)` }];
                             }
                         }
-                        logAndStore(forJob.reports, 'log', [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` npm ${approach}`, durationToAppend]);
+                        logAndStore(forJob.reports, 'log', [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` npm ${approach}`, ...durationToAppend]);
                     }
                 }
 
@@ -413,81 +416,121 @@ const mainExecution = async function ({
             forBranch.duration = Date.now() - forBranch.time;
 
             forProject.reports.push(forBranch);
+
+            if (reportSend_branch !== 'no') {
+                await submitReports({
+                    reportContents_project,
+                    reportContents_branch,
+                    reportContents_job,
+
+                    reportSend_runner,
+                    reportSend_project,
+                    reportSend_branch,
+
+                    reporters,
+
+                    runAndReport,
+
+                    // generateFor: 'branch',
+                    forRunner,
+                    forProject,
+                    forBranch
+                });
+            }
         }
 
         forProject.duration = Date.now() - forProject.time;
 
         forRunner.reports.push(forProject);
 
-        $.verbose = false;
-        cd(`/var/tmp/revisitor/${addAtLocation}`);
-        await $`touch ${id}.json`;
-        $.verbose = true;
+        if (source === 'cron') {
+            process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
+            await $`touch ${id}.json`;
 
-        const newStatusJson = structuredClone(oldStatusJson);
-        newStatusJson.push(forProject_status);
-        fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
+            const newStatusJson = structuredClone(oldStatusJson);
+            newStatusJson.push(forProject_status);
+            fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
+        }
 
-        // logger.json(statusForProject);
-        // logsForAllProjects.push({
-        //     project: id,
-        //     logs: logsForProject
-        // });
-
-        // console.log('Flushing the logs for this project');
-        // flushLogStore(logsForProject);
-
-        if (reportSend_project != 'no') {
-            // Use logsForProject
+        if (reportSend_project !== 'no') {
             await submitReports({
-                reportContents_job,
                 reportContents_project,
+                reportContents_branch,
+                reportContents_job,
 
-                reportSend_project,
                 reportSend_runner,
+                reportSend_project,
+                reportSend_branch,
 
                 reporters,
 
+                runAndReport,
+
+                // generateFor: 'project',
+                forRunner,
                 forProject
             });
         }
     }
 
-    // console.log(forRunner);
-
-    // console.log('Flushing all the logs');
-    // flushLogStore(logsForAllProjects);
-
-    if (reportSend_runner != 'no') {
+    if (reportSend_runner !== 'no') {
         await submitReports({
-            reportContents_job,
             reportContents_project,
+            reportContents_branch,
+            reportContents_job,
 
-            reportSend_project,
             reportSend_runner,
+            reportSend_project,
+            reportSend_branch,
 
             reporters,
 
+            runAndReport,
+
+            // generateFor: 'runner',
             forRunner
         });
     }
 };
 
+const validateWithFallback = function (value, allowedValues, fallbackValue) {
+    if (allowedValues.includes(value)) {
+        return value;
+    }
+    return fallbackValue;
+};
+
+const validateReportContentsOption = function (reportContents, fallbackValue) {
+    const allowedValues = ['always', 'onSkipWarn+', 'onWarn+', 'onError'];
+    const value = validateWithFallback(reportContents, allowedValues, fallbackValue);
+    return value;
+};
+
+const validateReportSendOption = function (reportSend, fallbackValue) {
+    const allowedValues = ['always', 'onSkipWarn+', 'onWarn+', 'onError', 'no'];
+    const value = validateWithFallback(reportSend, allowedValues, fallbackValue);
+    return value;
+};
+
 (async () => {
+    const { $ } = await import('execa');
+
     const addAtLocation = config.addAtLocation || 'git-projects-cache';
 
-    const runAndReport           = config.runAndReport                  || {};
+    const runAndReport           = config.runAndReport         || {};
 
-    const crons                  = runAndReport.crons                   || [];
+    const crons                  = runAndReport.crons          || [];
 
-    const reportContents_job     = runAndReport.reportContents?.job     || 'always';
-    const reportContents_project = runAndReport.reportContents?.project || 'always';
+    const reportContents_project = validateReportContentsOption(runAndReport.reportContents?.project, 'onWarn+');
+    const reportContents_branch  = validateReportContentsOption(runAndReport.reportContents?.branch,  'onWarn+');
+    const reportContents_job     = validateReportContentsOption(runAndReport.reportContents?.job,     'onWarn+');
 
-    const reportSend_project     = runAndReport.reportSend?.project     || 'onWarn+';
-    const reportSend_runner      = runAndReport.reportSend?.runner      || 'no';
+    const reportSend_runner      = validateReportSendOption(runAndReport.reportSend?.runner,  'always' );
+    const reportSend_project     = validateReportSendOption(runAndReport.reportSend?.project, 'onError');
+    const reportSend_branch      = validateReportSendOption(runAndReport.reportSend?.branch,  'onError');
 
-    const reportDuration         = runAndReport.reportDuration          || false;
-    const reporters              = runAndReport.reporters               || [];
+    const reportDuration         = runAndReport.reportDuration || false;
+    const reporters              = runAndReport.reporters      || [];
 
     if (
         opts.execute ||
@@ -503,16 +546,18 @@ const mainExecution = async function ({
         );
 
         if (projectsToOperateOn.length === 0) {
+            console.log('');
             if (typeof opts.project === 'string') {
-                logger.error(`\nError: No project found with id: ${opts.project}`);
+                pinoLogger.error(`Error: No project found with id: ${opts.project}`);
             } else {
-                logger.error('\nError: No project found');
+                pinoLogger.error('Error: No project found');
             }
             process.exit(1);
         }
-        logger.info(`\nOperating on project${projectsToOperateOn.length === 1 ? '' : 's'}:`);
+        console.log('');
+        pinoLogger.info(`Operating on project${projectsToOperateOn.length === 1 ? '' : 's'}:`);
         for (const project of projectsToOperateOn) {
-            logger.info(`    * ${project.id}`);
+            pinoLogger.info(`    * ${project.id}`);
         }
 
         config.projects = projectsToOperateOn;
@@ -523,14 +568,15 @@ const mainExecution = async function ({
                 if (runOnceForProject) {
                     project.branches = [
                         ...project.branches,
-                        '<project-level-jobs>'
+                        '{project-level-jobs}'
                     ];
                 }
             }
         }
 
-        // logger.info('Applied configuration:');
-        // logger.json(config);
+        console.log('');
+        pinoLogger.trace('Applied configuration:');
+        pinoLogger.trace(pinoJsonBeautifier(config));
 
         if (opts.add) {
             await $`mkdir -p /var/tmp/revisitor/${addAtLocation}`;
@@ -552,7 +598,7 @@ const mainExecution = async function ({
                     url :
                     path.resolve(configInDirectory, url);
 
-                cd(`/var/tmp/revisitor/${addAtLocation}`);
+                process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
 
                 const targetDirectoryPath = path.resolve(`/var/tmp/revisitor/${addAtLocation}`, id);
                 if (fs.existsSync(targetDirectoryPath)) {
@@ -560,7 +606,7 @@ const mainExecution = async function ({
                 } else {
                     await $`git clone ${urlOrPath} ${id}`;
                 }
-                cd(id);
+                process.chdir(id);
 
                 await $`pwd`;
 
@@ -574,19 +620,28 @@ const mainExecution = async function ({
             }
         }
 
-        const callMainExecution = async function () {
+        const callMainExecution = async function ({ source }) {
             await mainExecution({
+                $,
+
+                config,
+
+                source,
+
                 addAtLocation,
 
-                reportContents_job,
                 reportContents_project,
+                reportContents_branch,
+                reportContents_job,
 
-                reportSend_project,
                 reportSend_runner,
+                reportSend_project,
+                reportSend_branch,
 
                 reportDuration,
                 reporters,
 
+                runAndReport,
                 projects: config.projects
             });
         };
@@ -595,14 +650,18 @@ const mainExecution = async function ({
             for (const cron of crons) {
                 schedule.scheduleJob(cron, function () {
                     (async () => {
-                        await callMainExecution();
+                        await callMainExecution({
+                            source: 'cron'
+                        });
                     })();
                 });
             }
         }
 
         if (opts.execute) {
-            await callMainExecution();
+            await callMainExecution({
+                source: 'command'
+            });
         }
     }
 })();

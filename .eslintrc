@@ -20,5 +20,9 @@
     // Add ESLint rules here. If they are stable and useful, move those as a pull
     // request to https://github.com/webextensions/eslint-config-ironplate/
     "rules": {
+        "no-unused-vars": ["error", { "args": "all" }],
+        "eqeqeq": "error",
+        "no-cond-assign": ["error", "always"],
+        "unicorn/no-process-exit": "off"
     }
 }

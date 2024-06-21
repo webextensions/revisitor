@@ -1,7 +1,7 @@
 module.exports = {
     manifestVersion: 1,
     id: 'helpmate',
-    title: 'Helpmate',
+    title: 'helpmate',
     // url: 'git@github.com:webextensions/helpmate.git',
     url: '../../../helpmate-revisitor-test/.git',
 
