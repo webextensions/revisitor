@@ -360,6 +360,39 @@ const mainExecution = async function ({
                     } else {
                         logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Branches count: ${branchesCount}`,                                                              ...durationToAppend]);
                     }
+                } else if (type === 'npmOutdated') {
+                    const { options } = job;
+
+                    const t1 = Date.now();
+                    const outdated = await $`npx npm-check-updates --jsonUpgraded`;
+                    const t2 = Date.now();
+                    let durationToAppend = '';
+                    if (reportDuration) {
+                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                    }
+                    const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
+                    const outdatedJson = Object.entries(outdatedJsonObj);
+                    forJob_statusData.outdated = outdatedJson;
+
+                    const lastExecutionOutdated = forJobData_status_lastExecution?.outdated;
+
+                    const whatToDo = getLogOrWarnOrSkipWarnOrError({
+                        reportContents_job,
+                        limit: options.limit,
+                        deltaDirection: 'increment',
+                        count: outdatedJson.length,
+                        lastExecutionCount: lastExecutionOutdated?.length
+                    });
+
+                    if (whatToDo === 'error') {
+                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
+                    } else if (whatToDo === 'warn') {
+                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
+                    } else if (whatToDo === 'skipWarn') {
+                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
+                    } else {
+                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Outdated npm packages count: ${outdatedJson.length}`,                                                              ...durationToAppend]);
+                    }
                 } else if (type === 'npmInstall') {
                     const { options } = job;
                     const {

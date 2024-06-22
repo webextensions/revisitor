@@ -32,6 +32,19 @@ module.exports = {
                 approach: 'ci',   // 'install' / 'ci'
                 attempts: 3       // Run the npm ci up to 3 times (if error encountered)
             }
+        },
+        {
+            type: 'npmOutdated',
+            runForBranches: [
+                'main'
+            ],
+            options: {
+                limit: {
+                    warn: 1,          // 1 outdated package
+                    warnIncrement: 1, // Warn on 1+, 2+, 3+
+                    error: 5
+                }
+            }
         }
     ]
 };
