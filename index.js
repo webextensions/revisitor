@@ -362,6 +362,7 @@ const mainExecution = async function ({
                     }
                 } else if (type === 'npmOutdated') {
                     const { options } = job;
+                    const { approach } = options;
 
                     const t1 = Date.now();
                     const outdated = await $`npx npm-check-updates --jsonUpgraded`;
@@ -371,7 +372,26 @@ const mainExecution = async function ({
                         durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
                     }
                     const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
-                    const outdatedJson = Object.entries(outdatedJsonObj);
+                    let outdatedJson = Object.entries(outdatedJsonObj);
+
+                    switch (approach) {
+                        case 'skipExactVersion': {
+                            // eslint-disable-next-line no-unused-vars
+                            outdatedJson = outdatedJson.filter(([packageName, packageVersion]) => {
+                                if (packageVersion.charAt(0) === '^' || packageVersion.charAt(0) === '~') {
+                                    return true;
+                                } else {
+                                    return false;
+                                }
+                            });
+                            break;
+                        }
+                        case 'all':
+                        default: {
+                            // do nothing
+                        }
+                    }
+
                     forJob_statusData.outdated = outdatedJson;
 
                     const lastExecutionOutdated = forJobData_status_lastExecution?.outdated;

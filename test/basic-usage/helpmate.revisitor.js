@@ -39,6 +39,7 @@ module.exports = {
                 'main'
             ],
             options: {
+                approach: 'skipExactVersion', // 'all' (default) / 'skipExactVersion'
                 limit: {
                     warn: 1,          // 1 outdated package
                     warnIncrement: 1, // Warn on 1+, 2+, 3+
