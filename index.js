@@ -134,7 +134,8 @@ const submitReports = async function ({
                 let message = generatedReport;
                 // By default, `✔` gets converted to `:heavy_check_mark:` which doesn't look great, hence, converting it to `✓`
                 message = message.replaceAll('✔', '✓');
-                message = message.replaceAll('⚠️', '!');
+
+                message = message.replaceAll('⚠️', ' ! '); // Using ' ! ' (exclamation with a space) since '!' alone doesn't seem to occupy enough space (in Slack)
 
                 message = messageTitle + '\n\n' + message;
 

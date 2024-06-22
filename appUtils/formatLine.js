@@ -64,7 +64,6 @@ const formatLine = function (format, reportType, message) {
     }
 
     if (reportType === 'error') {
-        finalMessage = '✗ ' + finalMessage;
         if (format === 'console') {
             finalMessage = chalk.red(finalMessage);
         } else if (format === 'markdown') {
@@ -73,7 +72,6 @@ const formatLine = function (format, reportType, message) {
             finalMessage = `<span style="color: red;">${finalMessage}</span>`;
         }
     } else if (reportType === 'warn') {
-        finalMessage = '⚠️ ' + finalMessage;
         if (format === 'console') {
             finalMessage = chalk.yellow(finalMessage);
         } else if (format === 'markdown') {
