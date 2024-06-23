@@ -31,10 +31,9 @@ const { program } = require('commander');
 program
     .option('--config  <config>')
     .option('--add     [project]')
+    .option('--remove  [project]')
     .option('--execute [project]')
-    .option('--start   [project]')
-    .option('--stop    [project]')
-    .option('--remove  [project]');
+    .option('--cron    [project]');
 
 program.parse();
 
@@ -587,11 +586,10 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
     const reporters              = runAndReport.reporters      || [];
 
     if (
-        opts.execute ||
         opts.add     ||
-        opts.start   ||
-        opts.stop    ||
-        opts.remove
+        opts.remove  ||
+        opts.execute ||
+        opts.cron
     ) {
         const projectsToOperateOn = (
             (typeof opts.project === 'string') ?
@@ -632,8 +630,11 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
         pinoLogger.trace('Applied configuration:');
         pinoLogger.trace(pinoJsonBeautifier(config));
 
+        const parentDirectory = `/var/tmp/revisitor/${addAtLocation}`;
+
         if (opts.add) {
-            await $`mkdir -p /var/tmp/revisitor/${addAtLocation}`;
+            await $`mkdir -p ${parentDirectory}`;
+            process.chdir(parentDirectory);
 
             for (const project of config.projects) {
                 const {
@@ -652,9 +653,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
                     url :
                     path.resolve(configInDirectory, url);
 
-                process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
-
-                const targetDirectoryPath = path.resolve(`/var/tmp/revisitor/${addAtLocation}`, id);
+                const targetDirectoryPath = path.resolve(parentDirectory, id);
                 if (fs.existsSync(targetDirectoryPath)) {
                     logger.warn(`Warning: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${id}"`);
                 } else {
@@ -700,7 +699,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
             });
         };
 
-        if (opts.start) {
+        if (opts.cron) {
             for (const cron of crons) {
                 schedule.scheduleJob(cron, function () {
                     (async () => {

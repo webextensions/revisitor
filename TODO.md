@@ -428,18 +428,11 @@ module.exports = {
 
 # Commands
 
-* Add a new project to the list of projects to be revisited:
-  `$ npx revisitor --start "./projects/index.js"`
-
-* Show the list of all the projects and their status:
-  `$ npx revisitor --ls`
-
-* Restart the projects with the latest version of revisitor:
-  `$ npx revisitor --stop-and-ls | npx revisitor@latest --start`
+* TODO: Pending
 
 # Configuration
 
-# Contents
+## Contents
 
 ```
 project-monitor/
@@ -449,10 +442,9 @@ project-monitor/
         // },
         // "scripts": {
         //     "revisitor:add":               "revisitor --config ./projects/index.js --add    ",
-        //     "revisitor:execute":           "revisitor --config ./projects/index.js --execute",
-        //     "revisitor:start":             "revisitor --config ./projects/index.js --start  ",
-        //     "revisitor:stop":              "revisitor --config ./projects/index.js --stop   ",
         //     "revisitor:remove":            "revisitor --config ./projects/index.js --remove ",
+        //     "revisitor:execute":           "revisitor --config ./projects/index.js --execute",
+        //     "revisitor:cron":              "revisitor --config ./projects/index.js --cron   ",
         //
         //     "revisitor:execute:helpmate":  "revisitor --config ./projects/index.js --execute --project helpmate",
         //     "revisitor:execute:project-2": "revisitor --config ./projects/index.js --execute --project project-2",
