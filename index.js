@@ -716,5 +716,50 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
                 source: 'command'
             });
         }
+
+        if (opts.remove) {
+            process.chdir(parentDirectory);
+            const cwd = process.cwd();
+            pinoLogger.info(`Current working directory: ${cwd}`);
+
+            const fsEntityExists = async function (path) {
+                try {
+                    const stats = await fs.promises.stat(path); // eslint-disable-line no-unused-vars
+                    return [null, true];
+                } catch (err) {
+                    if (err.code === 'ENOENT') {
+                        return [null, false];
+                    } else {
+                        return [err];
+                    }
+                }
+            };
+
+            for (const project of config.projects) {
+                const projectId = project.id;
+                try {
+                    // DEV-HELPER:
+                    //     To cause an error, first make a directory immutable by:
+                    //         $ sudo chattr +i /path/to/directory
+                    //     Then, attempting to remove it will cause an error.
+                    //     To remove the immutable flag, use:
+                    //         $ sudo chattr -i /path/to/directory
+
+                    const [err, existed] = await fsEntityExists(projectId);
+                    if (err) {
+                        throw err;
+                    }
+
+                    await $`rm -rf ${projectId}`;
+                    pinoLogger.info(
+                        `Removed project: ${projectId}` +
+                        (existed ? ' (project path existed)' : chalk.yellow(' (project directory did not exist)'))
+                    );
+                } catch (err) {
+                    pinoLogger.error(`Error in removing project: ${projectId}`);
+                    pinoLogger.error(err);
+                }
+            }
+        }
     }
 })();

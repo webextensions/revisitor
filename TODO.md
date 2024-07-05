@@ -446,8 +446,9 @@ project-monitor/
         //     "revisitor:execute":           "revisitor --config ./projects/index.js --execute",
         //     "revisitor:cron":              "revisitor --config ./projects/index.js --cron   ",
         //
-        //     "revisitor:execute:helpmate":  "revisitor --config ./projects/index.js --execute --project helpmate",
-        //     "revisitor:execute:project-2": "revisitor --config ./projects/index.js --execute --project project-2",
+        //     "revisitor:helpmate:execute":  "revisitor --config ./projects/index.js --execute --project helpmate",
+        //
+        //     "revisitor:project-2:execute": "revisitor --config ./projects/index.js --execute --project project-2",
         // }
     projects/
         helpmate.revisitor.js (configuration)

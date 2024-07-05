@@ -6,14 +6,19 @@
         "revisitor:execute:trace":       "LOG_LEVEL=trace                                        revisitor --config ./all.js --execute",
 
         "revisitor:add":               "revisitor --config ./all.js --add",
+        "revisitor:remove":            "revisitor --config ./all.js --remove",
         "revisitor:execute":           "revisitor --config ./all.js --execute",
-        "revisitor:start":             "revisitor --config ./all.js --start",
+        "revisitor:cron":              "revisitor --config ./all.js --cron",
 
-        "revisitor:add:helpmate":      "revisitor --config ./all.js --add     helpmate",
-        "revisitor:execute:helpmate":  "revisitor --config ./all.js --execute helpmate",
+        "revisitor:helpmate:add":      "revisitor --config ./all.js --add     helpmate",
+        "revisitor:helpmate:remove":   "revisitor --config ./all.js --remove  helpmate",
+        "revisitor:helpmate:execute":  "revisitor --config ./all.js --execute helpmate",
+        "revisitor:helpmate:cron":     "revisitor --config ./all.js --cron    helpmate",
 
-        "revisitor:add:note-down":     "revisitor --config ./all.js --add     note-down",
-        "revisitor:execute:note-down": "revisitor --config ./all.js --execute note-down"
+        "revisitor:note-down:add":     "revisitor --config ./all.js --add     note-down",
+        "revisitor:note-down:remove":  "revisitor --config ./all.js --remove  note-down",
+        "revisitor:note-down:execute": "revisitor --config ./all.js --execute note-down",
+        "revisitor:note-down:cron":    "revisitor --config ./all.js --cron    note-down"
     },
     "dependencies": {
         "revisitor": "../../",
