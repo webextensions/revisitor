@@ -14,6 +14,8 @@ noteDown.option('showLogLine', false);
 
 const schedule = require('node-schedule');
 
+const { htmlEscape } = require('helpmate/dist/misc/htmlEscape.cjs');
+
 const {
     pinoLogger,
     pinoJsonBeautifier
@@ -46,6 +48,95 @@ pinoLogger.debug(`Current working directory: ${cwd}`);
 const configPath = path.resolve(cwd, opts.config);
 pinoLogger.info(`Loading configuration from: ${configPath}`);
 const config = require(configPath);
+
+class ReportIfError {
+    constructor({ reporters }) {
+        this.reporters = reporters;
+    }
+
+    async run(fn) {
+        try {
+            await fn();
+            return [null];
+        } catch (err) {
+            pinoLogger.error(err);
+
+            for (const reporter of this.reporters) {
+                switch (reporter.type) {
+                    case 'slack': {
+                        const webhookUrl = reporter.url;
+
+                        const [errSlack, warningSlack, responseSlack] = await sendSlackMessage({
+                            webhookUrl,
+                            message: [
+                                '*Revisitor - Error*',
+                                '',
+                                '`' + err + '`',
+                                '',
+                                '```',
+                                err.stack,
+                                '```'
+                            ].join('\n')
+                        });
+
+                        if (errSlack) {
+                            console.error(chalk.red(' ✗ Error in posting message to Slack:'));
+                            console.error(chalk.red(`      Status: ${errSlack.response?.status}`));
+                            console.error(chalk.red(`      Body: ${errSlack.response?.body}`));
+                        } else if (warningSlack) {
+                            console.warn(chalk.verbose(' ⚠️ Warning in posting message to Slack:'), warningSlack);
+                        } else {
+                            console.info(`\n ${chalk.green('✔')} Message posted to Slack successfully:`, responseSlack.body);
+                        }
+
+                        break;
+                    }
+                    case 'mail': {
+                        const provider = reporter.provider;
+
+                        if (provider === 'sendgrid') {
+                            const [errMail, warningMail, statusMail] = await sendMail(
+                                {
+                                    apiKey: reporter.config.SENDGRID_API_KEY
+                                },
+                                {
+                                    from: reporter.config.MAIL_FROM,
+                                    to: reporter.config.MAIL_TO_LIST,
+                                    cc: reporter.config.MAIL_CC_LIST,
+                                    bcc: reporter.config.MAIL_BCC_LIST,
+                                    subject: 'Revisitor - Error',
+                                    body: [
+                                        'Revisitor - Error',
+                                        '',
+                                        '<pre>' + htmlEscape(String(err)) + '</pre>',
+                                        '',
+                                        '<pre>' + htmlEscape(String(err.stack)) + '</pre>'
+                                    ].join('\n')
+                                }
+                            );
+                            if (errMail) {
+                                console.error(chalk.red(' ✗ Error in mailing message:'), errMail);
+                            } else if (warningMail) {
+                                console.warn(chalk.yellow(' ⚠️ Warning in mailing message:'), warningMail);
+                            } else {
+                                console.info(`\n ${chalk.green('✔')} Message mailed successfully:`, statusMail);
+                            }
+                        } else {
+                            console.error(chalk.red(' ✗ Unknown mail provider'));
+                        }
+
+                        break;
+                    }
+                    default: {
+                        console.error(chalk.red(` ✗ Unknown reporter type`));
+                    }
+                }
+            }
+
+            return [err];
+        }
+    }
+}
 
 const logAndStore = function (arr, reportType, message) {
     const format = 'console';
@@ -222,256 +313,299 @@ const mainExecution = async function ({
         reports: []
     };
 
+    const reportIfError = new ReportIfError({ reporters });
+
     for (const project of projects) {
-        const {
-            id,
-            title
-        } = project;
+        await reportIfError.run(async () => {
+            const {
+                id,
+                title
+            } = project;
 
-        logger.log(`\n➤ Project: ${title}`);
-        // logAndStore(forProject.reports, 'log', `\n➤ Project: ${title}`);
+            logger.log(`\n➤ Project: ${title}`);
+            // logAndStore(forProject.reports, 'log', `\n➤ Project: ${title}`);
 
-        const forProject = {
-            time: Date.now(),
-            id,
-            title,
-            reports: []
-        };
-
-        const forProject_status = {
-            time: Date.now(),
-            branches: {}
-        };
-
-        process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
-
-        const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
-        const oldStatusJson = (function () {
-            try {
-                return JSON.parse(oldExecutionStatsFileContents);
-            } catch (err) {
-                return [];
-            }
-        })();
-        const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
-
-        process.chdir(id);
-        // await $({ stdout: 'inherit' })`pwd`; // DEBUG-HELPER:
-        await $`pwd`;
-
-        await $`git fetch`;
-
-        for (const branch of project.branches) {
-            logger.log(`    ➤ Branch: ${branch}`);
-            // logAndStore(forBranch.reports, 'log', `    ➤ Branch: ${branch}`);
-
-            const forBranch = {
+            const forProject = {
                 time: Date.now(),
-                branch,
+                id,
+                title,
                 reports: []
             };
 
-            const forBranch_status_lastExecution = forProject_status_lastExecution?.branches[branch];
-
-            const forBranch_status = {};
-            forProject_status.branches[branch] = {
-                jobs: forBranch_status
+            const forProject_status = {
+                time: Date.now(),
+                branches: {}
             };
 
-            if (branch !== '{project-level-jobs}') {
-                await $`git checkout ${branch}`;
-                await $`git reset --hard origin/${branch}`;
-            }
+            process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
 
-            for (const job of project.jobs) {
-                const {
-                    type,
-                    runOnceForProject,
-                    runForBranches
-                } = job;
-                const computedJobId = job.type + (job.id ? ('-' + job.id) : '');
+            const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
+            const oldStatusJson = (function () {
+                try {
+                    return JSON.parse(oldExecutionStatsFileContents);
+                } catch (err) {
+                    return [];
+                }
+            })();
+            const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
 
-                if (runOnceForProject) {
+            process.chdir(id);
+
+            // await $({ stdout: 'inherit' })`pwd`; // DEBUG-HELPER:
+            await $`pwd`;
+
+            await $`git fetch`;
+
+            for (const branch of project.branches) {
+                await reportIfError.run(async () => {
+                    logger.log(`    ➤ Branch: ${branch}`);
+                    // logAndStore(forBranch.reports, 'log', `    ➤ Branch: ${branch}`);
+
+                    const forBranch = {
+                        time: Date.now(),
+                        branch,
+                        reports: []
+                    };
+
+                    const forBranch_status_lastExecution = forProject_status_lastExecution?.branches[branch];
+
+                    const forBranch_status = {};
+                    forProject_status.branches[branch] = {
+                        jobs: forBranch_status
+                    };
+
                     if (branch !== '{project-level-jobs}') {
-                        continue;
+                        await $`git checkout ${branch}`;
+                        await $`git reset --hard origin/${branch}`;
                     }
-                } else {
-                    if (branch === '{project-level-jobs}') {
-                        continue;
-                    }
-                }
 
-                if (
-                    runForBranches &&
-                    !runForBranches.includes(branch)
-                ) {
-                    continue;
-                }
+                    for (const job of project.jobs) {
+                        await reportIfError.run(async () => {
+                            const {
+                                type,
+                                runOnceForProject,
+                                runForBranches
+                            } = job;
+                            const computedJobId = job.type + (job.id ? ('-' + job.id) : '');
 
-                logger.log(`        ➤ Job: ${type}`);
-                // logAndStore(forBranch.reports, 'log', `        ➤ Job: ${type}`);
-
-                const forJob = {
-                    time: Date.now(),
-                    type,
-                    id: computedJobId,
-                    reports: []
-                };
-
-                const forJob_statusData = {};
-                const forJob_status = {
-                    status: forJob_statusData
-                };
-
-                forBranch_status[computedJobId] = forJob_status;
-
-                const forJobData_status_lastExecution = forBranch_status_lastExecution?.jobs[computedJobId]?.status;
-
-                if (type === 'gitBranchesCount') {
-                    const { options } = job;
-
-                    const t1 = Date.now();
-                    await $`git remote prune origin`;
-                    const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
-                    const t2 = Date.now();
-                    let durationToAppend = '';
-                    if (reportDuration) {
-                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
-                    }
-                    const branchesCount = parseInt(branches.stdout.trim());
-                    forJob_statusData.branchesCount = branchesCount;
-
-                    const lastExecutionBranchesCount = forJobData_status_lastExecution?.branchesCount;
-
-                    const whatToDo = getLogOrWarnOrSkipWarnOrError({
-                        reportContents_job,
-                        limit: options.limit,
-                        deltaDirection: 'increment',
-                        count: branchesCount,
-                        lastExecutionCount: lastExecutionBranchesCount
-                    });
-
-                    if (whatToDo === 'error') {
-                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Branches count: ${branchesCount} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
-                    } else if (whatToDo === 'warn') {
-                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
-                    } else if (whatToDo === 'skipWarn') {
-                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
-                    } else {
-                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Branches count: ${branchesCount}`,                                                              ...durationToAppend]);
-                    }
-                } else if (type === 'npmOutdated') {
-                    const { options } = job;
-                    const { approach } = options;
-
-                    const t1 = Date.now();
-                    const outdated = await $`npx npm-check-updates --jsonUpgraded`;
-                    const t2 = Date.now();
-                    let durationToAppend = '';
-                    if (reportDuration) {
-                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
-                    }
-                    const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
-                    let outdatedJson = Object.entries(outdatedJsonObj);
-
-                    switch (approach) {
-                        case 'skipExactVersion': {
-                            // eslint-disable-next-line no-unused-vars
-                            outdatedJson = outdatedJson.filter(([packageName, packageVersion]) => {
-                                if (packageVersion.charAt(0) === '^' || packageVersion.charAt(0) === '~') {
-                                    return true;
-                                } else {
-                                    return false;
+                            if (runOnceForProject) {
+                                if (branch !== '{project-level-jobs}') {
+                                    return;
                                 }
-                            });
-                            break;
-                        }
-                        case 'all':
-                        default: {
-                            // do nothing
-                        }
-                    }
-
-                    forJob_statusData.outdated = outdatedJson;
-
-                    const lastExecutionOutdated = forJobData_status_lastExecution?.outdated;
-
-                    const whatToDo = getLogOrWarnOrSkipWarnOrError({
-                        reportContents_job,
-                        limit: options.limit,
-                        deltaDirection: 'increment',
-                        count: outdatedJson.length,
-                        lastExecutionCount: lastExecutionOutdated?.length
-                    });
-
-                    if (whatToDo === 'error') {
-                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
-                    } else if (whatToDo === 'warn') {
-                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
-                    } else if (whatToDo === 'skipWarn') {
-                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
-                    } else {
-                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Outdated npm packages count: ${outdatedJson.length}`,                                                              ...durationToAppend]);
-                    }
-                } else if (type === 'npmInstall') {
-                    const { options } = job;
-                    const {
-                        approach,
-                        attempts
-                    } = options;
-
-                    let errorOccurred = false;
-                    let attemptInstance = 0;
-                    let attemptDuration = 0;
-                    let totalDuration = 0;
-                    try {
-                        for (let i = 0; i < attempts; i++) {
-                            try {
-                                attemptInstance = i + 1;
-                                const t1 = Date.now();
-                                await $`npm ${approach}`;
-                                const t2 = Date.now();
-                                attemptDuration = t2 - t1;
-                                totalDuration += attemptDuration;
-                                break;
-                            } catch (error) {
-                                if (i === attempts - 1) {
-                                    throw error;
-                                }
-                            }
-                        }
-                        forJob_statusData.worked = 'yes';
-                    } catch (err) {
-                        errorOccurred = true;
-                        forJob_statusData.worked = 'no';
-                    }
-
-                    if (errorOccurred) {
-                        logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red', message: `✗ npm ${approach} failed in ${attemptInstance} attempt(s)` }]);
-                    } else  {
-                        let durationToAppend = '';
-                        if (reportDuration) {
-                            if (attemptInstance > 1) {
-                                durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms / ${totalDuration}ms)` }];
                             } else {
-                                durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms)` }];
+                                if (branch === '{project-level-jobs}') {
+                                    return;
+                                }
                             }
-                        }
-                        logAndStore(forJob.reports, 'log', [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` npm ${approach}`, ...durationToAppend]);
+
+                            if (
+                                runForBranches &&
+                                !runForBranches.includes(branch)
+                            ) {
+                                return;
+                            }
+
+                            logger.log(`        ➤ Job: ${type}`);
+                            // logAndStore(forBranch.reports, 'log', `        ➤ Job: ${type}`);
+
+                            const forJob = {
+                                time: Date.now(),
+                                type,
+                                id: computedJobId,
+                                reports: []
+                            };
+
+                            const forJob_statusData = {};
+                            const forJob_status = {
+                                status: forJob_statusData
+                            };
+
+                            forBranch_status[computedJobId] = forJob_status;
+
+                            const forJobData_status_lastExecution = forBranch_status_lastExecution?.jobs[computedJobId]?.status;
+
+                            if (type === 'gitBranchesCount') {
+                                const { options } = job;
+
+                                const t1 = Date.now();
+                                await $`git remote prune origin`;
+                                const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
+                                const t2 = Date.now();
+                                let durationToAppend = '';
+                                if (reportDuration) {
+                                    durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                                }
+                                const branchesCount = parseInt(branches.stdout.trim());
+                                forJob_statusData.branchesCount = branchesCount;
+
+                                const lastExecutionBranchesCount = forJobData_status_lastExecution?.branchesCount;
+
+                                const whatToDo = getLogOrWarnOrSkipWarnOrError({
+                                    reportContents_job,
+                                    limit: options.limit,
+                                    deltaDirection: 'increment',
+                                    count: branchesCount,
+                                    lastExecutionCount: lastExecutionBranchesCount
+                                });
+
+                                if (whatToDo === 'error') {
+                                    logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Branches count: ${branchesCount} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
+                                } else if (whatToDo === 'warn') {
+                                    logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
+                                } else if (whatToDo === 'skipWarn') {
+                                    logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
+                                } else {
+                                    logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Branches count: ${branchesCount}`,                                                              ...durationToAppend]);
+                                }
+                            } else if (type === 'npmOutdated') {
+                                const { options } = job;
+                                const { approach } = options;
+
+                                const t1 = Date.now();
+                                const outdated = await $`npx npm-check-updates --jsonUpgraded`;
+                                const t2 = Date.now();
+                                let durationToAppend = '';
+                                if (reportDuration) {
+                                    durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                                }
+                                const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
+                                let outdatedJson = Object.entries(outdatedJsonObj);
+
+                                switch (approach) {
+                                    case 'skipExactVersion': {
+                                        // eslint-disable-next-line no-unused-vars
+                                        outdatedJson = outdatedJson.filter(([packageName, packageVersion]) => {
+                                            if (packageVersion.charAt(0) === '^' || packageVersion.charAt(0) === '~') {
+                                                return true;
+                                            } else {
+                                                return false;
+                                            }
+                                        });
+                                        break;
+                                    }
+                                    case 'all':
+                                    default: {
+                                        // do nothing
+                                    }
+                                }
+
+                                forJob_statusData.outdated = outdatedJson;
+
+                                const lastExecutionOutdated = forJobData_status_lastExecution?.outdated;
+
+                                const whatToDo = getLogOrWarnOrSkipWarnOrError({
+                                    reportContents_job,
+                                    limit: options.limit,
+                                    deltaDirection: 'increment',
+                                    count: outdatedJson.length,
+                                    lastExecutionCount: lastExecutionOutdated?.length
+                                });
+
+                                if (whatToDo === 'error') {
+                                    logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
+                                } else if (whatToDo === 'warn') {
+                                    logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
+                                } else if (whatToDo === 'skipWarn') {
+                                    logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
+                                } else {
+                                    logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Outdated npm packages count: ${outdatedJson.length}`,                                                              ...durationToAppend]);
+                                }
+                            } else if (type === 'npmInstall') {
+                                const { options } = job;
+                                const {
+                                    approach,
+                                    attempts
+                                } = options;
+
+                                let errorOccurred = false;
+                                let attemptInstance = 0;
+                                let attemptDuration = 0;
+                                let totalDuration = 0;
+                                try {
+                                    for (let i = 0; i < attempts; i++) {
+                                        try {
+                                            attemptInstance = i + 1;
+                                            const t1 = Date.now();
+                                            await $`npm ${approach}`;
+                                            const t2 = Date.now();
+                                            attemptDuration = t2 - t1;
+                                            totalDuration += attemptDuration;
+                                            break;
+                                        } catch (error) {
+                                            if (i === attempts - 1) {
+                                                throw error;
+                                            }
+                                        }
+                                    }
+                                    forJob_statusData.worked = 'yes';
+                                } catch (err) {
+                                    errorOccurred = true;
+                                    forJob_statusData.worked = 'no';
+                                }
+
+                                if (errorOccurred) {
+                                    logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red', message: `✗ npm ${approach} failed in ${attemptInstance} attempt(s)` }]);
+                                } else  {
+                                    let durationToAppend = '';
+                                    if (reportDuration) {
+                                        if (attemptInstance > 1) {
+                                            durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms / ${totalDuration}ms)` }];
+                                        } else {
+                                            durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms)` }];
+                                        }
+                                    }
+                                    logAndStore(forJob.reports, 'log', [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` npm ${approach}`, ...durationToAppend]);
+                                }
+                            }
+
+                            forJob.duration = Date.now() - forJob.time;
+                            forJob_status.duration = forJob.duration;
+
+                            forBranch.reports.push(forJob);
+                        });
                     }
-                }
 
-                forJob.duration = Date.now() - forJob.time;
-                forJob_status.duration = forJob.duration;
+                    forBranch.duration = Date.now() - forBranch.time;
 
-                forBranch.reports.push(forJob);
+                    forProject.reports.push(forBranch);
+
+                    if (reportSend_branch !== 'no') {
+                        await submitReports({
+                            reportContents_project,
+                            reportContents_branch,
+                            reportContents_job,
+
+                            reportSend_runner,
+                            reportSend_project,
+                            reportSend_branch,
+
+                            reporters,
+
+                            runAndReport,
+
+                            // generateFor: 'branch',
+                            forRunner,
+                            forProject,
+                            forBranch
+                        });
+                    }
+                });
             }
 
-            forBranch.duration = Date.now() - forBranch.time;
+            forProject.duration = Date.now() - forProject.time;
 
-            forProject.reports.push(forBranch);
+            forRunner.reports.push(forProject);
 
-            if (reportSend_branch !== 'no') {
+            if (source === 'cron') {
+                process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
+                await $`touch ${id}.json`;
+
+                const newStatusJson = structuredClone(oldStatusJson);
+                newStatusJson.push(forProject_status);
+                fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
+            }
+
+            if (reportSend_project !== 'no') {
                 await submitReports({
                     reportContents_project,
                     reportContents_branch,
@@ -485,46 +619,12 @@ const mainExecution = async function ({
 
                     runAndReport,
 
-                    // generateFor: 'branch',
+                    // generateFor: 'project',
                     forRunner,
-                    forProject,
-                    forBranch
+                    forProject
                 });
             }
-        }
-
-        forProject.duration = Date.now() - forProject.time;
-
-        forRunner.reports.push(forProject);
-
-        if (source === 'cron') {
-            process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
-            await $`touch ${id}.json`;
-
-            const newStatusJson = structuredClone(oldStatusJson);
-            newStatusJson.push(forProject_status);
-            fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
-        }
-
-        if (reportSend_project !== 'no') {
-            await submitReports({
-                reportContents_project,
-                reportContents_branch,
-                reportContents_job,
-
-                reportSend_runner,
-                reportSend_project,
-                reportSend_branch,
-
-                reporters,
-
-                runAndReport,
-
-                // generateFor: 'project',
-                forRunner,
-                forProject
-            });
-        }
+        });
     }
 
     if (reportSend_runner !== 'no') {

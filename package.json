@@ -51,6 +51,7 @@
         "commander": "^12.1.0",
         "execa": "^9.3.0",
         "got": "^14.4.1",
+        "helpmate": "^1.6.1",
         "node-notifier": "^10.0.1",
         "node-schedule": "^2.1.1",
         "note-down": "^1.0.2",
