@@ -10,15 +10,15 @@
         "revisitor:execute":           "revisitor --config ./all.js --execute",
         "revisitor:cron":              "revisitor --config ./all.js --cron",
 
-        "revisitor:helpmate:add":      "revisitor --config ./all.js --add     helpmate",
-        "revisitor:helpmate:remove":   "revisitor --config ./all.js --remove  helpmate",
-        "revisitor:helpmate:execute":  "revisitor --config ./all.js --execute helpmate",
-        "revisitor:helpmate:cron":     "revisitor --config ./all.js --cron    helpmate",
+        "revisitor:helpmate:add":      "revisitor --config ./all.js --add     --project helpmate",
+        "revisitor:helpmate:remove":   "revisitor --config ./all.js --remove  --project helpmate",
+        "revisitor:helpmate:execute":  "revisitor --config ./all.js --execute --project helpmate",
+        "revisitor:helpmate:cron":     "revisitor --config ./all.js --cron    --project helpmate",
 
-        "revisitor:note-down:add":     "revisitor --config ./all.js --add     note-down",
-        "revisitor:note-down:remove":  "revisitor --config ./all.js --remove  note-down",
-        "revisitor:note-down:execute": "revisitor --config ./all.js --execute note-down",
-        "revisitor:note-down:cron":    "revisitor --config ./all.js --cron    note-down"
+        "revisitor:note-down:add":     "revisitor --config ./all.js --add     --project note-down",
+        "revisitor:note-down:remove":  "revisitor --config ./all.js --remove  --project note-down",
+        "revisitor:note-down:execute": "revisitor --config ./all.js --execute --project note-down",
+        "revisitor:note-down:cron":    "revisitor --config ./all.js --cron    --project note-down"
     },
     "dependencies": {
         "revisitor": "../../",

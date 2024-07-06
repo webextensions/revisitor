@@ -30,10 +30,11 @@ const { program } = require('commander');
 
 program
     .option('--config  <config>')
-    .option('--add     [project]')
-    .option('--remove  [project]')
-    .option('--execute [project]')
-    .option('--cron    [project]');
+    .option('--add')
+    .option('--remove')
+    .option('--execute')
+    .option('--cron')
+    .option('--project <project>');
 
 program.parse();
 
