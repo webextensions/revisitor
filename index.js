@@ -80,13 +80,13 @@ class ReportIfError {
                         });
 
                         if (errSlack) {
-                            console.error(chalk.red(' ✗ Error in posting message to Slack:'));
-                            console.error(chalk.red(`      Status: ${errSlack.response?.status}`));
-                            console.error(chalk.red(`      Body: ${errSlack.response?.body}`));
+                            pinoLogger.error(chalk.red('✗ Error in posting message to Slack:'));
+                            pinoLogger.error(chalk.red(`      Status: ${errSlack.response?.status}`));
+                            pinoLogger.error(chalk.red(`      Body: ${errSlack.response?.body}`));
                         } else if (warningSlack) {
-                            console.warn(chalk.verbose(' ⚠️ Warning in posting message to Slack:'), warningSlack);
+                            pinoLogger.warn(chalk.yellow(`⚠️ Warning in posting message to Slack: ${warningSlack}`));
                         } else {
-                            console.info(`\n ${chalk.green('✔')} Message posted to Slack successfully:`, responseSlack.body);
+                            pinoLogger.info(`${chalk.green('✔')} Message posted to Slack successfully: ${responseSlack.body}`);
                         }
 
                         break;
@@ -115,20 +115,20 @@ class ReportIfError {
                                 }
                             );
                             if (errMail) {
-                                console.error(chalk.red(' ✗ Error in mailing message:'), errMail);
+                                pinoLogger.error(chalk.red(`✗ Error in mailing message: ${errMail}`));
                             } else if (warningMail) {
-                                console.warn(chalk.yellow(' ⚠️ Warning in mailing message:'), warningMail);
+                                pinoLogger.warn(chalk.yellow(`⚠️ Warning in mailing message: ${warningMail}`));
                             } else {
-                                console.info(`\n ${chalk.green('✔')} Message mailed successfully:`, statusMail);
+                                pinoLogger.info(`${chalk.green('✔')} Message mailed successfully: ${statusMail}`);
                             }
                         } else {
-                            console.error(chalk.red(' ✗ Unknown mail provider'));
+                            pinoLogger.error(chalk.red('✗ Unknown mail provider'));
                         }
 
                         break;
                     }
                     default: {
-                        console.error(chalk.red(` ✗ Unknown reporter type`));
+                        pinoLogger.error(chalk.red(`✗ Unknown reporter type`));
                     }
                 }
             }
@@ -236,13 +236,14 @@ const submitReports = async function ({
                 });
 
                 if (err) {
-                    console.error(chalk.red(' ✗ Error in posting message to Slack:'));
-                    console.error(chalk.red(`      Status: ${err.response?.status}`));
-                    console.error(chalk.red(`      Body: ${err.response?.body}`));
+                    pinoLogger.error(chalk.red('✗ Error in posting message to Slack:'));
+                    pinoLogger.error(chalk.red(`      Status: ${err.response?.status}`));
+                    pinoLogger.error(chalk.red(`      Body: ${err.response?.body}`));
                 } else if (warning) {
-                    console.warn(chalk.verbose(' ⚠️ Warning in posting message to Slack:'), warning);
+                    pinoLogger.warn(chalk.yellow(`⚠️ Warning in posting message to Slack: ${warning}`));
                 } else {
-                    console.info(`\n ${chalk.green('✔')} Message posted to Slack successfully:`, response.body);
+                    logger.log('');
+                    pinoLogger.info(`${chalk.green('✔')} Message posted to Slack successfully: ${response.body}`);
                 }
 
                 break;
@@ -265,20 +266,20 @@ const submitReports = async function ({
                         }
                     );
                     if (err) {
-                        console.error(chalk.red(' ✗ Error in mailing message:'), err);
+                        pinoLogger.error(chalk.red(`✗ Error in mailing message: ${err}`));
                     } else if (warning) {
-                        console.warn(chalk.yellow(' ⚠️ Warning in mailing message:'), warning);
+                        pinoLogger.warn(chalk.yellow(`⚠️ Warning in mailing message: ${warning}`));
                     } else {
-                        console.info(`\n ${chalk.green('✔')} Message mailed successfully:`, status);
+                        pinoLogger.info(`${chalk.green('✔')} Message mailed successfully: ${status}`);
                     }
                 } else {
-                    console.error(chalk.red(' ✗ Unknown mail provider'));
+                    pinoLogger.error(chalk.red('✗ Unknown mail provider'));
                 }
 
                 break;
             }
             default: {
-                console.error(chalk.red(` ✗ Unknown reporter type`));
+                pinoLogger.error(chalk.red(`✗ Unknown reporter type`));
             }
         }
     }
@@ -854,7 +855,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
                     await $`rm -rf ${projectId}`;
                     pinoLogger.info(
                         `Removed project: ${projectId}` +
-                        (existed ? ' (project path existed)' : chalk.yellow(' (project directory did not exist)'))
+                        chalk.gray(existed ? ' (project path existed)' : ' (project directory did not exist)')
                     );
                 } catch (err) {
                     pinoLogger.error(`Error in removing project: ${projectId}`);
