@@ -10,7 +10,7 @@ const pinoPrettyStream = pinoPretty({
     colorizeObjects: true,
     // translateTime: 'SYS:standard',
     // translateTime: 'SYS:hh:MM:ss.l TT Z',
-    translateTime: 'SYS:hh:MM:ss.l',
+    translateTime: 'SYS:HH:MM:ss.l',
     ignore: 'pid,hostname',
 
     // Note:

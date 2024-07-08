@@ -42,6 +42,23 @@ program.parse();
 
 const opts = program.opts();
 
+const execaConfig = (function () {
+    const LOG_LEVEL = process.env.LOG_LEVEL;
+
+    const config = {};
+
+    if (
+        LOG_LEVEL === 'trace' ||
+        LOG_LEVEL === 'debug'
+    ) {
+        config.stdout = 'inherit';
+        config.stderr = 'inherit';
+        config.verbose = 'full';
+    }
+
+    return config;
+})();
+
 const cwd = process.cwd();
 pinoLogger.debug(`Current working directory: ${cwd}`);
 
@@ -351,11 +368,10 @@ const mainExecution = async function ({
             const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
 
             process.chdir(id);
+            const cwd = process.cwd();
+            pinoLogger.debug(`Current working directory: ${cwd}`);
 
-            // await $({ stdout: 'inherit' })`pwd`; // DEBUG-HELPER:
-            await $`pwd`;
-
-            await $`git fetch`;
+            await $(execaConfig)`git fetch`;
 
             for (const branch of project.branches) {
                 await reportIfError.run(async () => {
@@ -376,8 +392,8 @@ const mainExecution = async function ({
                     };
 
                     if (branch !== '{project-level-jobs}') {
-                        await $`git checkout ${branch}`;
-                        await $`git reset --hard origin/${branch}`;
+                        await $(execaConfig)`git checkout ${branch}`;
+                        await $(execaConfig)`git reset --hard origin/${branch}`;
                     }
 
                     for (const job of project.jobs) {
@@ -429,8 +445,8 @@ const mainExecution = async function ({
                                 const { options } = job;
 
                                 const t1 = Date.now();
-                                await $`git remote prune origin`;
-                                const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
+                                await $(execaConfig)`git remote prune origin`;
+                                const branches = await $(execaConfig)`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
                                 const t2 = Date.now();
                                 let durationToAppend = '';
                                 if (reportDuration) {
@@ -463,7 +479,7 @@ const mainExecution = async function ({
                                 const { approach } = options;
 
                                 const t1 = Date.now();
-                                const outdated = await $`npx npm-check-updates --jsonUpgraded`;
+                                const outdated = await $(execaConfig)`npx npm-check-updates --jsonUpgraded`;
                                 const t2 = Date.now();
                                 let durationToAppend = '';
                                 if (reportDuration) {
@@ -527,7 +543,7 @@ const mainExecution = async function ({
                                         try {
                                             attemptInstance = i + 1;
                                             const t1 = Date.now();
-                                            await $`npm ${approach}`;
+                                            await $(execaConfig)`npm ${approach}`;
                                             const t2 = Date.now();
                                             attemptDuration = t2 - t1;
                                             totalDuration += attemptDuration;
@@ -599,7 +615,7 @@ const mainExecution = async function ({
 
             if (source === 'cron') {
                 process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
-                await $`touch ${id}.json`;
+                await $(execaConfig)`touch ${id}.json`;
 
                 const newStatusJson = structuredClone(oldStatusJson);
                 newStatusJson.push(forProject_status);
@@ -735,43 +751,46 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
         const parentDirectory = `/var/tmp/revisitor/${addAtLocation}`;
 
         if (opts.add) {
-            await $`mkdir -p ${parentDirectory}`;
+            await $(execaConfig)`mkdir -p ${parentDirectory}`;
             process.chdir(parentDirectory);
+            const cwd = process.cwd();
+            pinoLogger.debug(`Current working directory: ${cwd}`);
 
             for (const project of config.projects) {
-                const {
-                    id,
-                    url
-                } = project;
+                const projectId = project.id;
+                const projectUrl = project.url;
 
                 const configInDirectory = path.dirname(configPath);
                 const urlOrPath = (
-                    url.indexOf('git@')   === 0 ||
-                    url.indexOf('git:')   === 0 ||
-                    url.indexOf('ftp:')   === 0 ||
-                    url.indexOf('ftps:')  === 0 ||
-                    url.indexOf('https:') === 0
+                    projectUrl.indexOf('git@')   === 0 ||
+                    projectUrl.indexOf('git:')   === 0 ||
+                    projectUrl.indexOf('ftp:')   === 0 ||
+                    projectUrl.indexOf('ftps:')  === 0 ||
+                    projectUrl.indexOf('https:') === 0
                 ) ?
-                    url :
-                    path.resolve(configInDirectory, url);
+                    projectUrl :
+                    path.resolve(configInDirectory, projectUrl);
 
-                const targetDirectoryPath = path.resolve(parentDirectory, id);
+                const targetDirectoryPath = path.resolve(parentDirectory, projectId);
                 if (fs.existsSync(targetDirectoryPath)) {
-                    logger.warn(`Warning: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${id}"`);
+                    pinoLogger.warn(`Warning: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${projectId}".`);
                 } else {
-                    await $`git clone ${urlOrPath} ${id}`;
+                    pinoLogger.info(`Cloning project: ${projectId}`);
+                    await $(execaConfig)`git clone ${urlOrPath} ${projectId}`;
+                    pinoLogger.info(`Cloned project: ${projectId}`);
                 }
-                process.chdir(id);
+                process.chdir(projectId);
 
-                await $`pwd`;
+                const cwd = process.cwd();
+                pinoLogger.info(`The Git project is available at: ${cwd}`);
 
-                await $`git fetch`;
+                await $(execaConfig)`git fetch`;
 
                 const { branches } = project;
                 const branch = branches[0];
-                await $`git checkout ${branch}`;
+                await $(execaConfig)`git checkout ${branch}`;
 
-                await $`git reset --hard origin/${branch}`;
+                await $(execaConfig)`git reset --hard origin/${branch}`;
             }
         }
 
@@ -820,9 +839,10 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
         }
 
         if (opts.remove) {
+            await $(execaConfig)`mkdir -p ${parentDirectory}`;
             process.chdir(parentDirectory);
             const cwd = process.cwd();
-            pinoLogger.info(`Current working directory: ${cwd}`);
+            pinoLogger.debug(`Current working directory: ${cwd}`);
 
             const fsEntityExists = async function (path) {
                 try {
@@ -839,6 +859,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
 
             for (const project of config.projects) {
                 const projectId = project.id;
+
                 try {
                     // DEV-HELPER:
                     //     To cause an error, first make a directory immutable by:
@@ -852,7 +873,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
                         throw err;
                     }
 
-                    await $`rm -rf ${projectId}`;
+                    await $(execaConfig)`rm -rf ${projectId}`;
                     pinoLogger.info(
                         `Removed project: ${projectId}` +
                         chalk.gray(existed ? ' (project path existed)' : ' (project directory did not exist)')
