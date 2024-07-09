@@ -183,11 +183,15 @@ module.exports = {
             // This job will check that the Node.js version is up to date (via .nvmrc or package.json engines field)
             type: 'nodeOutdated',
             options: {
-                status: {
-                    major: 'error', // 'error' / 'warn' (default)
-                    minor: 'warn',  // 'error' / 'warn' (default)
-                    patch: 'warn'   // 'error' / 'warn' (default)
-                }
+                approach: '.nvmrc',      // '.nvmrc' / 'auto' (default) / 'package.json'
+                ensure: 'stable~2',      // 'latest' / 'stable' / 'stable~1' / 'stable~2' (default)
+                                         // Usually (not always), they will map to:
+                                         //     'latest':   Latest version (including unstable)
+                                         //     'stable':   Latest stable version
+                                         //     'stable~1': LTS version
+                                         //     'stable~2': Maintenance version
+                ensureStrategy: 'patch', // 'major' / 'minor' / 'patch' (default)
+                failureStatus: 'warn'    // 'error' / 'warn' (default)
             }
         },
         {

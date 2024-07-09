@@ -16,6 +16,8 @@ const schedule = require('node-schedule');
 
 const { htmlEscape } = require('helpmate/dist/misc/htmlEscape.cjs');
 
+const semver = require('semver');
+
 const {
     pinoLogger,
     pinoJsonBeautifier
@@ -24,6 +26,7 @@ const {
 const { formatLine } = require('./appUtils/formatLine.js');
 const { generateProjectReport } = require('./appUtils/generateProjectReport.js');
 const { getLogOrWarnOrSkipWarnOrError } = require('./appUtils/getLogOrWarnOrSkipWarnOrError.js');
+const { tagNodeVersions } = require('./appUtils/nodeOutdated/nodeOutdatedHelpers.js');
 
 const { sendSlackMessage } = require('./reporters/slack/sendSlackMessage.js');
 const { sendMail } = require('./reporters/mail/sendMail.js');
@@ -473,6 +476,72 @@ const mainExecution = async function ({
                                     logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
                                 } else {
                                     logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Branches count: ${branchesCount}`,                                                              ...durationToAppend]);
+                                }
+                            } else if (type === 'nodeOutdated') {
+                                const t1 = Date.now();
+
+                                const { options } = job;
+
+                                let versionToEnsure;
+                                if (options.approach === '.nvmrc') {
+                                    // Read the .nvmrc file
+                                    const nvmrcContents = fs.readFileSync('.nvmrc', 'utf8');
+                                    versionToEnsure = nvmrcContents.trim();
+                                    if (versionToEnsure.indexOf('v') !== 0) {
+                                        versionToEnsure = 'v' + versionToEnsure;
+                                    }
+                                }
+
+                                const taggedVersions = await tagNodeVersions();
+
+                                let range;
+
+                                if (options.ensure === 'latest') {
+                                    range = taggedVersions.latest;
+                                } else if (options.ensure === 'stable') {
+                                    range = taggedVersions.stable;
+                                } else if (options.ensure === 'stable~1') {
+                                    range = taggedVersions.stableTilde1;
+                                } else { // options.ensure === 'stable~2'
+                                    range = taggedVersions.stableTilde2;
+                                }
+
+                                if (options.ensureStrategy === 'major') {
+                                    range = '>=' + semver.major(range) + '.x.x';
+                                } else if (options.ensureStrategy === 'minor') {
+                                    range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.x';
+                                } else { // options.ensureStrategy === 'patch'
+                                    range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.' + semver.patch(range);
+                                }
+
+                                const flagSatisfied = semver.satisfies(versionToEnsure, range);
+
+                                const t2 = Date.now();
+                                let durationToAppend = '';
+                                if (reportDuration) {
+                                    durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                                }
+
+                                forJob_statusData.outdated = flagSatisfied ? null : versionToEnsure;
+
+                                let whatToDo;
+
+                                if (flagSatisfied) {
+                                    whatToDo = 'log';
+                                } else {
+                                    if (options.failureStatus === 'warn') {
+                                        whatToDo = 'warn';
+                                    } else {
+                                        whatToDo = 'error';
+                                    }
+                                }
+
+                                if (whatToDo === 'log') {
+                                    logAndStore(forJob.reports, 'log',   [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Node version: ${versionToEnsure} is satisfied by ${range}`, ...durationToAppend]);
+                                } else if (whatToDo === 'warn') {
+                                    logAndStore(forJob.reports, 'warn',  [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
+                                } else { // whatToDo === 'error'
+                                    logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red',    message: `✗ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
                                 }
                             } else if (type === 'npmOutdated') {
                                 const { options } = job;

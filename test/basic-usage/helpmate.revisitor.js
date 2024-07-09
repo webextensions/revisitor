@@ -23,6 +23,18 @@ module.exports = {
             }
         },
         {
+            type: 'nodeOutdated',
+            runForBranches: [
+                'main'
+            ],
+            options: {
+                approach: '.nvmrc',      // '.nvmrc' (default) / 'package.json'
+                ensure: 'stable~2',      // 'latest' / 'stable' / 'stable~1' / 'stable~2' (default)
+                ensureStrategy: 'patch', // 'major' / 'minor' / 'patch' (default)
+                failureStatus: 'warn'    // 'error' / 'warn' (default)
+            }
+        },
+        {
             type: 'npmInstall',   // Not cleaning npm cache
             runForBranches: [
                 'main',
