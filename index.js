@@ -15,6 +15,7 @@ noteDown.option('showLogLine', false);
 const schedule = require('node-schedule');
 
 const { htmlEscape } = require('helpmate/dist/misc/htmlEscape.cjs');
+const { tryCatchSafe } = require('helpmate/dist/control/tryCatch.cjs');
 
 const semver = require('semver');
 
@@ -360,14 +361,17 @@ const mainExecution = async function ({
 
             process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
 
-            const oldExecutionStatsFileContents = fs.readFileSync(`${id}.json`, 'utf8');
-            const oldStatusJson = (function () {
-                try {
-                    return JSON.parse(oldExecutionStatsFileContents);
-                } catch (err) {
-                    return [];
-                }
-            })();
+            // eslint-disable-next-line no-unused-vars
+            const [errFileRead, oldExecutionStatsFileContents] = tryCatchSafe(() => {
+                const output = fs.readFileSync(`${id}.json`, 'utf8');
+                return output;
+            }, '[]');
+
+            // eslint-disable-next-line no-unused-vars
+            const [errJsonParse, oldStatusJson] = tryCatchSafe(() => {
+                const output = JSON.parse(oldExecutionStatsFileContents);
+                return output;
+            }, []);
             const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
 
             process.chdir(id);

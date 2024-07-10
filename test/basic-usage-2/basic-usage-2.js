@@ -22,12 +22,6 @@ console.log('Loaded environment variables from:', pathEnv);
 
 const SLACK_WEBHOOK_URL = process.env.SLACK_WEBHOOK_URL;
 
-const SENDGRID_API_KEY  = process.env.SENDGRID_API_KEY;
-const MAIL_FROM         = process.env.MAIL_FROM;
-const MAIL_TO_LIST      = (process.env.MAIL_TO_LIST  && process.env.MAIL_TO_LIST.split(','))  || undefined;
-const MAIL_CC_LIST      = (process.env.MAIL_CC_LIST  && process.env.MAIL_CC_LIST.split(','))  || undefined;
-const MAIL_BCC_LIST     = (process.env.MAIL_BCC_LIST && process.env.MAIL_BCC_LIST.split(',')) || undefined;
-
 module.exports = {
     title: 'health-checks',
     addAtLocation: 'git-projects',
@@ -53,23 +47,51 @@ module.exports = {
             {
                 type: 'slack',
                 url: SLACK_WEBHOOK_URL
-            },
-            {
-                type: 'mail',
-                provider: 'sendgrid',
-                config: {
-                    SENDGRID_API_KEY,
-                    MAIL_FROM,
-                    MAIL_TO_LIST,
-                    MAIL_CC_LIST,
-                    MAIL_BCC_LIST
-                }
             }
         ]
     },
 
     projects: [
-        require('./helpmate.revisitor.js'),
-        require('./note-down.revisitor.js')
+        {
+            manifestVersion: 1,
+            id: 'helpmate',
+            title: 'helpmate',
+            url: 'git@github.com:webextensions/helpmate.git',
+            // url: '../../../helpmate-revisitor-test/.git',
+
+            branches: [
+                'main'
+            ],
+
+            jobs: [
+                {
+                    type: 'nodeOutdated',
+                    options: {
+                        approach: '.nvmrc',      // '.nvmrc' (default) / 'package.json'
+                        ensure: 'stable~2',      // 'latest' / 'stable' / 'stable~1' / 'stable~2' (default)
+                        ensureStrategy: 'patch', // 'major' / 'minor' / 'patch' (default)
+                        failureStatus: 'warn'    // 'error' / 'warn' (default)
+                    }
+                },
+                {
+                    type: 'npmInstall',   // Not cleaning npm cache
+                    options: {
+                        approach: 'ci',   // 'install' / 'ci'
+                        attempts: 3       // Run the npm ci up to 3 times (if error encountered)
+                    }
+                },
+                {
+                    type: 'npmOutdated',
+                    options: {
+                        approach: 'skipExactVersion', // 'all' (default) / 'skipExactVersion'
+                        limit: {
+                            warn: 1,          // 1 outdated package
+                            warnIncrement: 1, // Warn on 1+, 2+, 3+
+                            error: 5
+                        }
+                    }
+                }
+            ]
+        }
     ]
 };
