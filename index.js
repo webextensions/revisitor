@@ -554,7 +554,7 @@ const mainExecution = async function ({
                                 const { approach } = options;
 
                                 const t1 = Date.now();
-                                const outdated = await $`npx npm-check-updates --jsonUpgraded`;
+                                const outdated = await $`npx --yes npm-check-updates --jsonUpgraded`;
                                 const t2 = Date.now();
                                 let durationToAppend = '';
                                 if (reportDuration) {
