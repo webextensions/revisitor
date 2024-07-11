@@ -46,6 +46,8 @@ program.parse();
 
 const opts = program.opts();
 
+// Note: Don't use `execaConfig` where we need to store the output of the command into some variable and perform some
+//       further operations
 const execaConfig = (function () {
     const LOG_LEVEL = process.env.LOG_LEVEL;
 
@@ -453,7 +455,7 @@ const mainExecution = async function ({
 
                                 const t1 = Date.now();
                                 await $(execaConfig)`git remote prune origin`;
-                                const branches = await $(execaConfig)`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
+                                const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
                                 const t2 = Date.now();
                                 let durationToAppend = '';
                                 if (reportDuration) {
@@ -552,7 +554,7 @@ const mainExecution = async function ({
                                 const { approach } = options;
 
                                 const t1 = Date.now();
-                                const outdated = await $(execaConfig)`npx npm-check-updates --jsonUpgraded`;
+                                const outdated = await $`npx npm-check-updates --jsonUpgraded`;
                                 const t2 = Date.now();
                                 let durationToAppend = '';
                                 if (reportDuration) {
