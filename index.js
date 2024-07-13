@@ -401,7 +401,7 @@ const mainExecution = async function ({
                     };
 
                     if (branch !== '{project-level-jobs}') {
-                        await $(execaConfig)`git checkout ${branch}`;
+                        await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
                         await $(execaConfig)`git reset --hard origin/${branch}`;
                     }
 
@@ -863,7 +863,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
 
                 const { branches } = project;
                 const branch = branches[0];
-                await $(execaConfig)`git checkout ${branch}`;
+                await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
 
                 await $(execaConfig)`git reset --hard origin/${branch}`;
             }
