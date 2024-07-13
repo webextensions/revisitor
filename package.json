@@ -1,6 +1,6 @@
 {
     "name": "revisitor",
-    "version": "0.1.8",
+    "version": "0.1.9",
     "description": "A task runner for your git projects to execute jobs at regular intervals and generate reports / alerts / notifications / mails",
     "engines": {
         "node": ">=18"
