@@ -2,6 +2,8 @@
     "name": "basic-usage-2",
     "version": "0.0.1",
     "scripts": {
+        "monitor-server-requests": "npx --yes monitor-server-requests --status 200 --response \"ok\"",
+
         "revisitor:execute:inspect-brk": "LOG_LEVEL=trace node --inspect-brk ./node_modules/.bin/revisitor --config ./basic-usage-2.js --execute",
         "revisitor:execute:trace":       "LOG_LEVEL=trace                                        revisitor --config ./basic-usage-2.js --execute",
 
