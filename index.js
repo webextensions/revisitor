@@ -16,6 +16,7 @@ const schedule = require('node-schedule');
 
 const { htmlEscape } = require('helpmate/dist/misc/htmlEscape.cjs');
 const { tryCatchSafe } = require('helpmate/dist/control/tryCatch.cjs');
+const { timeout } = require('helpmate/dist/scheduler/timeout.cjs');
 
 const semver = require('semver');
 
@@ -64,6 +65,14 @@ const execaConfig = (function () {
 
     return config;
 })();
+const execaWithRetryConfig = {
+    attempts: 3,
+    retryStrategy: {
+        type: 'exponential',
+        initialDelay: 2000,
+        exponent: 2
+    }
+};
 
 const cwd = process.cwd();
 pinoLogger.debug(`Current working directory: ${cwd}`);
@@ -310,6 +319,7 @@ const submitReports = async function ({
 
 const mainExecution = async function ({
     $,
+    execaWithRetry,
 
     config,
 
@@ -380,7 +390,7 @@ const mainExecution = async function ({
             const cwd = process.cwd();
             pinoLogger.debug(`Current working directory: ${cwd}`);
 
-            await $(execaConfig)`git fetch`;
+            await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
 
             for (const branch of project.branches) {
                 await reportIfError.run(async () => {
@@ -759,7 +769,30 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
 };
 
 (async () => {
-    const { $ } = await import('execa');
+    const { $, execa } = await import('execa');
+
+    // Sometimes, the (`execa`) command fails with an error, but it may work if retried. This function assists in such cases.
+    // eg: An error like `error: cannot lock ref 'refs/remotes/origin/main': is at ...`
+    const execaWithRetry = async function (command, args, config, retryConfig) {
+        const { attempts, retryStrategy } = retryConfig;
+
+        let attempt = 0;
+        let delay = retryStrategy.initialDelay;
+        while (attempt < attempts) {
+            try {
+                const retValue = await execa(command, args, config);
+                return retValue;
+            } catch (err) {
+                attempt++;
+                if (attempt < attempts) {
+                    delay *= retryStrategy.exponent;
+                    await timeout(delay);
+                } else {
+                    throw err;
+                }
+            }
+        }
+    };
 
     const addAtLocation = config.addAtLocation || 'git-projects-cache';
 
@@ -859,7 +892,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
                 const cwd = process.cwd();
                 pinoLogger.info(`The Git project is available at: ${cwd}`);
 
-                await $(execaConfig)`git fetch`;
+                await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
 
                 const { branches } = project;
                 const branch = branches[0];
@@ -872,6 +905,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
         const callMainExecution = async function ({ source }) {
             await mainExecution({
                 $,
+                execaWithRetry,
 
                 config,
 
