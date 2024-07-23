@@ -887,6 +887,7 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
                     await $(execaConfig)`git clone ${urlOrPath} ${projectId}`;
                     pinoLogger.info(`Cloned project: ${projectId}`);
                 }
+                process.chdir(parentDirectory);
                 process.chdir(projectId);
 
                 const cwd = process.cwd();
