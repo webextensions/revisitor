@@ -12,7 +12,8 @@ const {
 const chalk = noteDown.chalk;
 noteDown.option('showLogLine', false);
 
-const schedule = require('node-schedule');
+// const schedule = require('node-schedule');
+const cronstrue = require('cronstrue');
 
 const { htmlEscape } = require('helpmate/dist/misc/htmlEscape.cjs');
 const { tryCatchSafe } = require('helpmate/dist/control/tryCatch.cjs');
@@ -24,6 +25,8 @@ const {
     pinoLogger,
     pinoJsonBeautifier
 } = require('./utils/pinoLogger.js');
+
+const { cronScheduler } = require('./utils/cronScheduler.js');
 
 const { formatLine } = require('./appUtils/formatLine.js');
 const { generateProjectReport } = require('./appUtils/generateProjectReport.js');
@@ -932,13 +935,21 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
 
         if (opts.cron) {
             for (const cron of crons) {
-                schedule.scheduleJob(cron, function () {
-                    (async () => {
-                        await callMainExecution({
-                            source: 'cron'
-                        });
-                    })();
+                // schedule.scheduleJob(cron, function () {
+                //     (async () => {
+                //         await callMainExecution({
+                //             source: 'cron'
+                //         });
+                //     })();
+                // });
+
+                cronScheduler(cron, async function () {
+                    await callMainExecution({
+                        source: 'cron'
+                    });
                 });
+
+                pinoLogger.info(`Scheduled cron: ${cronstrue.toString(cron, { verbose: true })}`);
             }
         }
 
