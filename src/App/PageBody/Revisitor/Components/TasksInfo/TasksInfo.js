@@ -6,7 +6,35 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loading } from '../../../../../ImportedComponents/Loading/Loading.js';
 
 import { errAndDataArrayToPromise } from '../../../../utils/errAndDataArrayToPromise.js';
-import { countTasks } from '../../../../dal.js';
+import { listTasks } from '../../../../dal.js';
+
+const TasksTable = ({ tasks }) => {
+    return (
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {tasks.map((task) => {
+                    return (
+                        <tr key={task._id}>
+                            <td>{task._id}</td>
+                            <td>{task.input}</td>
+                            <td>{task.createdAt}</td>
+                        </tr>
+                    );
+                })}
+            </tbody>
+        </table>
+    );
+};
+TasksTable.propTypes = {
+    tasks: propTypes.array
+};
 
 const TasksInfo = ({ refreshedAt }) => {
     const {
@@ -14,9 +42,9 @@ const TasksInfo = ({ refreshedAt }) => {
         fetchStatus,
         data
     } = useQuery({
-        queryKey: ['tasksCount'],
+        queryKey: ['tasksList'],
         queryFn: () => {
-            const p = errAndDataArrayToPromise(countTasks);
+            const p = errAndDataArrayToPromise(listTasks);
             return p;
         }
     });
@@ -25,7 +53,7 @@ const TasksInfo = ({ refreshedAt }) => {
     useEffect(() => {
         if (refreshedAt) {
             queryClient.invalidateQueries({
-                queryKey: ['tasksCount'],
+                queryKey: ['tasksList'],
                 exact: true
             });
         }
@@ -40,7 +68,7 @@ const TasksInfo = ({ refreshedAt }) => {
         >
             {(() => {
                 if (status === 'success') {
-                    return `Count: ${JSON.stringify(data, null, 4)}`;
+                    return <TasksTable tasks={data} />;
                 } else if (status === 'error') {
                     return 'Error';
                 } else {
