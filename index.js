@@ -77,6 +77,11 @@ const execaWithRetryConfig = {
     }
 };
 
+if (!opts.config) {
+    console.error(chalk.red('Error: Missing option --config'));
+    process.exit(1);
+}
+
 const cwd = process.cwd();
 pinoLogger.debug(`Current working directory: ${cwd}`);
 
