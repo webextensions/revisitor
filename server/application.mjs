@@ -84,7 +84,7 @@ const routeSetup = async function (exp) {
 
     setTimeout(function () {
         // Setting up this router after a delay so that live-css server router is able to attach itself before it
-        router.use('*', function (req, res) {
+        router.use(function (req, res) {
             return res.status(404).send('Page not found');
         });
     }, 1000);
