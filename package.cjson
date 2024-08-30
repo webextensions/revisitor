@@ -35,6 +35,8 @@
         "express-redirect-to-https": "^0.4.0",
         "express-redirect-to-www": "^0.3.0",
 
+        "express-list-endpoints": "git+https://github.com/webextensions/express-list-endpoints.git#c98d28425eef24d117d1f726bbed95b5299a04a7",
+
         // Server - More
         "basic-auth": "^2.0.1",
         "compression": "^1.7.4",

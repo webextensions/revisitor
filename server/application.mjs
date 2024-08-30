@@ -79,7 +79,8 @@ const routeSetup = async function (exp) {
                 res.send(`TODO: Create a user with ID ${reqBody.username} (if available)`);
             })
         )
-        .use('/tasks', await (await import('./handlers/tasks/tasks.mjs')).setupTasksRoutes());
+        .use('/tasks', await (await import('./handlers/tasks/tasks.mjs')).setupTasksRoutes())
+        .use('/help', (await import('./handlers/expressHandlers/expressHandlers.mjs')).expressHandlers(exp));
 
     setTimeout(function () {
         // Setting up this router after a delay so that live-css server router is able to attach itself before it
@@ -162,6 +163,21 @@ const application = {
                 exp.use(webpackHotMiddleware(compiler));
             }
         }
+
+        exp.use(function (req, res, next) {
+            const
+                protocol = req.protocol,
+                host = req.get('host'),
+                originalUrl = req.originalUrl;
+
+            const origin  = protocol + '://' + host;
+            const fullUrl = origin + originalUrl;
+
+            res.locals.origin = origin;
+            res.locals.fullUrl = fullUrl;
+
+            return next();
+        });
 
         exp.use(function (req, res, next) {
             // TODO:

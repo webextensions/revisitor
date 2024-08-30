@@ -19,6 +19,7 @@
         "compression": "^1.7.4",
         "express": "^4.19.2",
         "express-hard-coded-response": "^0.1.5",
+        "express-list-endpoints": "git+https://github.com/webextensions/express-list-endpoints.git#c98d28425eef24d117d1f726bbed95b5299a04a7",
         "express-match-request": "^0.1.3",
         "express-network-delay": "0.0.1",
         "express-redirect-to-https": "^0.4.0",
