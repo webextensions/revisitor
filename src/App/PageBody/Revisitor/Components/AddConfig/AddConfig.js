@@ -38,6 +38,11 @@ const AddConfig = function () {
                     onChange={function (e) {
                         setConfigPath(e.target.value);
                     }}
+                    onKeyPress={function (e) {
+                        if (e.key === 'Enter') {
+                            refetch();
+                        }
+                    }}
                 />
             </div>
             <div>
