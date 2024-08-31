@@ -10,15 +10,6 @@ export const getDummyJsonData = async () => {
     }];
 };
 
-export const getDummyJsonDataNetwork = async () => {
-    try {
-        const response = await ky.get('/tasks/dummy').json();
-        return [null, response];
-    } catch (err) {
-        return [err, null];
-    }
-};
-
 export const listTasks = async () => {
     try {
         const response = await ky.get('/tasks/list').json();
