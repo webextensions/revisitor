@@ -9,8 +9,6 @@ import {
     sendSuccessResponse
 } from '../../utils/express-utils/express-utils.mjs';
 
-// const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const db = new Datastore({
@@ -22,21 +20,6 @@ const setupTasksRoutes = async function () {
     await db.loadDatabaseAsync();
     const router = (
         express.Router()
-            .get('/dummy', async function (req, res) {
-                // await timeout(2000);
-
-                // return res.send({
-                //     type: 'dummy',
-                //     name: 'John Doe',
-                //     source: 'server'
-                // });
-
-                return sendSuccessResponse(res, {
-                    type: 'dummy',
-                    name: 'John Doe',
-                    source: 'server'
-                });
-            })
             .get('/list', async function (req, res) {
                 const entries = await db.find({});
                 return sendSuccessResponse(res, entries);
@@ -46,8 +29,6 @@ const setupTasksRoutes = async function () {
                 return sendSuccessResponse(res, count);
             })
             .post('/create', async function (req, res) {
-                // return res.status(501).send({ error: 'Not Implemented' });
-
                 try {
                     const input = req.body;
 
@@ -57,7 +38,6 @@ const setupTasksRoutes = async function () {
                     };
 
                     const newDoc = await db.insertAsync(task);
-                    console.log('newDoc:', newDoc);
                     return sendSuccessResponse(res, newDoc);
                 } catch (err) {
                     console.error(err);
