@@ -19,18 +19,18 @@ export const getDummyJsonDataNetwork = async () => {
     }
 };
 
-export const countTasks = async () => {
+export const listTasks = async () => {
     try {
-        const response = await ky.get('/tasks/count').json();
+        const response = await ky.get('/tasks/list').json();
         return [null, response.output];
     } catch (err) {
         return [err, null];
     }
 };
 
-export const listTasks = async () => {
+export const countTasks = async () => {
     try {
-        const response = await ky.get('/tasks/list').json();
+        const response = await ky.get('/tasks/count').json();
         return [null, response.output];
     } catch (err) {
         return [err, null];

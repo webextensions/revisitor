@@ -37,13 +37,13 @@ const setupTasksRoutes = async function () {
                     source: 'server'
                 });
             })
-            .get('/count', async function (req, res) {
-                const count = await db.countAsync({});
-                return sendSuccessResponse(res, count);
-            })
             .get('/list', async function (req, res) {
                 const entries = await db.find({});
                 return sendSuccessResponse(res, entries);
+            })
+            .get('/count', async function (req, res) {
+                const count = await db.countAsync({});
+                return sendSuccessResponse(res, count);
             })
             .post('/create', async function (req, res) {
                 // return res.status(501).send({ error: 'Not Implemented' });
