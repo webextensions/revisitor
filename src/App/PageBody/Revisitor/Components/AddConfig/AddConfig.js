@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { errAndDataArrayToPromise } from '../../../../utils/errAndDataArrayToPromise.js';
 
@@ -10,6 +10,8 @@ import * as styles from './AddConfig.css';
 
 const AddConfig = function () {
     const [configPath, setConfigPath] = useState('');
+
+    const queryClient = useQueryClient();
 
     const {
         // isPending,
@@ -23,6 +25,10 @@ const AddConfig = function () {
         queryKey: ['dummyData'],
         queryFn: function () {
             const p = errAndDataArrayToPromise(createTask, [configPath]);
+            p.then(function () {
+                // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
+                queryClient.invalidateQueries(['tasksList']);
+            });
             return p;
         }
     });
