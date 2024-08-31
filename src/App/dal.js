@@ -12,8 +12,9 @@ export const getDummyJsonData = async () => {
 
 export const listTasks = async () => {
     try {
-        const response = await ky.get('/tasks/list').json();
-        return [null, response.output];
+        const response = await ky.get('/tasks/list');
+        const json = await response.json();
+        return [null, json.output];
     } catch (err) {
         return [err, null];
     }
@@ -21,8 +22,9 @@ export const listTasks = async () => {
 
 export const countTasks = async () => {
     try {
-        const response = await ky.get('/tasks/count').json();
-        return [null, response.output];
+        const response = await ky.get('/tasks/count');
+        const json = await response.json();
+        return [null, json.output];
     } catch (err) {
         return [err, null];
     }
@@ -34,8 +36,9 @@ export const createTask = async (task) => {
             json: {
                 input: task
             }
-        }).json();
-        return [null, response.output];
+        });
+        const json = await response.json();
+        return [null, json.output];
     } catch (err) {
         return [err, null];
     }
@@ -43,8 +46,9 @@ export const createTask = async (task) => {
 
 export const deleteTask = async (taskId) => {
     try {
-        const response = await ky.delete(`/tasks/delete/${taskId}`).json();
-        return [null, response.output];
+        const response = await ky.delete(`/tasks/delete/${taskId}`);
+        const json = await response.json();
+        return [null, json.output];
     } catch (err) {
         return [err, null];
     }
