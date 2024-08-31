@@ -30,6 +30,7 @@ const AddConfig = function () {
             p.then(function () {
                 // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
                 queryClient.invalidateQueries(['tasksList']);
+                setConfigPath('');
                 toast.success('Configuration added successfully');
             });
             return p;
@@ -48,7 +49,11 @@ const AddConfig = function () {
                         setConfigPath(e.target.value);
                     }}
                     onKeyPress={function (e) {
-                        if (e.key === 'Enter') {
+                        if (
+                            e.key === 'Enter' &&
+                            !isLoading &&
+                            configPath
+                        ) {
                             refetch();
                         }
                     }}
@@ -57,7 +62,7 @@ const AddConfig = function () {
             <div>
                 <button
                     type="button"
-                    disabled={isLoading}
+                    disabled={isLoading || !configPath}
                     onClick={function () {
                         refetch();
                     }}
