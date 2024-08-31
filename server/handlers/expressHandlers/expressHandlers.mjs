@@ -2,6 +2,9 @@ import listEndpoints from 'express-list-endpoints';
 
 // IMPORTANT: Ensure that res.locals.origin is set in some middleware before this handler is called
 
+// eg: 'GET'.length = 3; 'POST'.length = 4; 'DELETE'.length = 6; 'OPTIONS'.length = 7
+const longestHttpRequestMethodLength = 7;
+
 const expressHandlers = function (app) {
     return function (req, res) {
         // Reference for an alternative custom solution:
@@ -20,7 +23,18 @@ const expressHandlers = function (app) {
                     entryPath = entryPath.replace(/\\/g, ''); // Useful for removing the backslash escaping like "\.path" to ".path"
                 }
                 const url = res.locals.origin + entryPath;
-                return `<div style="white-space:pre">${entry.methods.join(' ').padEnd(4)} <a target="_top" href="${url}">${entryPath}</a></div>`;
+
+                /* eslint-disable @stylistic/indent-binary-ops */
+                const str = (
+                    '<div style="white-space:pre">' +
+                        // There may be multiple HTTP request methods used, but we are using simple padding logic for upto a single method only
+                        entry.methods.join(' ').padEnd(longestHttpRequestMethodLength) +
+                        ' ' +
+                        `<a target="_top" href="${url}">${entryPath}</a>` +
+                    '</div>'
+                );
+                /* eslint-enable @stylistic/indent-binary-ops */
+                return str;
             });
 
             links.sort();
