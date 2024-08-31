@@ -21,7 +21,7 @@ const setupTasksRoutes = async function () {
     const router = (
         express.Router()
             .get('/list', async function (req, res) {
-                const entries = await db.find({});
+                const entries = await db.find({}).sort({ input: 1 });
                 return sendSuccessResponse(res, entries);
             })
             .get('/count', async function (req, res) {
