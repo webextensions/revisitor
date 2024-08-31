@@ -49,3 +49,12 @@ export const createTask = async (task) => {
         return [err, null];
     }
 };
+
+export const deleteTask = async (taskId) => {
+    try {
+        const response = await ky.delete(`/tasks/delete/${taskId}`).json();
+        return [null, response.output];
+    } catch (err) {
+        return [err, null];
+    }
+};

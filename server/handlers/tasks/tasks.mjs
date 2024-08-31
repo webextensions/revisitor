@@ -44,6 +44,16 @@ const setupTasksRoutes = async function () {
                     return sendErrorResponse(res, 500, 'Internal Server Error');
                 }
             })
+            .delete('/delete/:taskId', async function (req, res) {
+                try {
+                    const { taskId } = req.params;
+                    const numRemoved = await db.removeAsync({ _id: taskId }, { multi: false });
+                    return sendSuccessResponse(res, numRemoved);
+                } catch (err) {
+                    console.error(err);
+                    return sendErrorResponse(res, 500, 'Internal Server Error');
+                }
+            })
     );
 
     return router;
