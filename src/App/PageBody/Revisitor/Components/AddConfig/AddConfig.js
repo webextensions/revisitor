@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
+import { toast } from '../../../../../ImportedComponents/react-toastify.js';
+
 import { errAndDataArrayToPromise } from '../../../../utils/errAndDataArrayToPromise.js';
 
 import { createTask } from '../../../../dal.js';
@@ -28,6 +30,7 @@ const AddConfig = function () {
             p.then(function () {
                 // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
                 queryClient.invalidateQueries(['tasksList']);
+                toast.success('Configuration added successfully');
             });
             return p;
         }

@@ -12,6 +12,7 @@ import { PageBody } from './PageBody/PageBody.js';
 // import { TodoList } from './TodoList/TodoList.js';
 // import { Dashboard } from './Dashboard/Dashboard.js';
 import { PageFooter } from './PageFooter/PageFooter.js';
+import { PageWidgets } from './PageWidgets/PageWidgets.js';
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = function () {
                 </div> */}
                 {/* <br /> */}
                 <PageFooter />
+                <PageWidgets />
             </div>
         </QueryClientProvider>
     );
