@@ -27,12 +27,17 @@ const AddConfig = function () {
         queryKey: ['dummyData'],
         queryFn: function () {
             const p = errAndDataArrayToPromise(createTask, [configPath]);
-            p.then(function () {
-                // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
-                queryClient.invalidateQueries(['tasksList']);
-                setConfigPath('');
-                toast.success('Configuration added successfully');
-            });
+            (async function () {
+                try {
+                    await p;
+                    // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
+                    queryClient.invalidateQueries(['tasksList']);
+                    setConfigPath('');
+                    toast.success('Configuration added successfully');
+                } catch (error) {
+                    toast.error('Failed to add configuration');
+                }
+            }());
             return p;
         }
     });
