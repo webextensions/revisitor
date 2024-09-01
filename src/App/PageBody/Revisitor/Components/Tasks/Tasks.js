@@ -11,6 +11,8 @@ import {
     deleteTask
 } from '../../../../dal.js';
 
+import { AddConfig } from '../AddConfig/AddConfig.js';
+
 const DeleteTask = ({ taskId, onDelete }) => {
     const {
         refetch,
@@ -71,6 +73,14 @@ Task.propTypes = {
 };
 
 const TasksTable = ({ tasks }) => {
+    if (!tasks.length) {
+        return (
+            <div style={{ fontStyle: 'italic', color: '#777' }}>
+                There are no available tasks. Please add a task.
+            </div>
+        );
+    }
+
     return (
         <table>
             <thead>
@@ -92,7 +102,7 @@ TasksTable.propTypes = {
     tasks: propTypes.array
 };
 
-const TasksInfo = ({ refreshedAt }) => {
+const TasksList = ({ refreshedAt }) => {
     const {
         status,
         fetchStatus,
@@ -134,8 +144,23 @@ const TasksInfo = ({ refreshedAt }) => {
         </div>
     );
 };
-TasksInfo.propTypes = {
+TasksList.propTypes = {
     refreshedAt: propTypes.number
 };
 
-export { TasksInfo };
+const Tasks = function ({ refreshedAt }) {
+    return (
+        <div>
+            <TasksList refreshedAt={refreshedAt} />
+
+            <div style={{ marginTop: 20 }}>
+                <AddConfig />
+            </div>
+        </div>
+    );
+};
+Tasks.propTypes = {
+    refreshedAt: propTypes.number
+};
+
+export { Tasks };
