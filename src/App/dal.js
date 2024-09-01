@@ -2,6 +2,13 @@ import ky from 'ky';
 
 const timeout = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export const kyForApp = {
+    // Setting `ky` instance internally, so that it can be updated in runtime (for development / debugging / testing purposes)
+    instance: ky.create({
+        timeout: 30000
+    })
+};
+
 export const getDummyJsonData = async () => {
     await timeout(2000);
     return [null, {
@@ -12,7 +19,7 @@ export const getDummyJsonData = async () => {
 
 export const listTasks = async () => {
     try {
-        const response = await ky.get('/tasks/list');
+        const response = await kyForApp.instance.get('/tasks/list');
         const json = await response.json();
         return [null, json.output];
     } catch (err) {
@@ -22,7 +29,7 @@ export const listTasks = async () => {
 
 export const countTasks = async () => {
     try {
-        const response = await ky.get('/tasks/count');
+        const response = await kyForApp.instance.get('/tasks/count');
         const json = await response.json();
         return [null, json.output];
     } catch (err) {
@@ -32,7 +39,7 @@ export const countTasks = async () => {
 
 export const createTask = async (task) => {
     try {
-        const response = await ky.post('/tasks/create', {
+        const response = await kyForApp.instance.post('/tasks/create', {
             json: {
                 input: task
             }
@@ -46,7 +53,7 @@ export const createTask = async (task) => {
 
 export const deleteTask = async (taskId) => {
     try {
-        const response = await ky.delete(`/tasks/delete/${taskId}`);
+        const response = await kyForApp.instance.delete(`/tasks/delete/${taskId}`);
         const json = await response.json();
         return [null, json.output];
     } catch (err) {
