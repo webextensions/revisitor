@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import propTypes from 'prop-types';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -6,27 +6,83 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Loading } from '../../../../../ImportedComponents/Loading/Loading.js';
 
 import { errAndDataArrayToPromise } from '../../../../utils/errAndDataArrayToPromise.js';
-import { listTasks } from '../../../../dal.js';
+import {
+    listTasks,
+    deleteTask
+} from '../../../../dal.js';
+
+const DeleteTask = ({ taskId, onDelete }) => {
+    const {
+        refetch,
+        status,
+        fetchStatus
+    } = useQuery({
+        enabled: false,
+        queryKey: ['deleteTask', taskId],
+        queryFn: () => {
+            const p = errAndDataArrayToPromise(deleteTask, [taskId]);
+            return p;
+        }
+    });
+
+    if (status === 'success') {
+        return <div>Deleted</div>;
+    }
+    return (
+        <button
+            disabled={fetchStatus === 'fetching'}
+            onClick={async () => {
+                await refetch();
+                onDelete();
+            }}
+        >
+            {fetchStatus === 'fetching' ? 'Deleting...' : 'Delete'}
+        </button>
+    );
+};
+DeleteTask.propTypes = {
+    taskId: propTypes.string,
+    onDelete: propTypes.func
+};
+
+const Task = ({ task }) => {
+    const [deleted, setDeleted] = useState(false);
+    const handleDelete = () => {
+        setDeleted(true);
+    };
+    return (
+        <tr
+            style={{
+                height: 24,
+                cursor: deleted ? 'not-allowed' : 'pointer',
+                opacity: deleted ? 0.5 : undefined
+            }}
+        >
+            <td>{task.input}</td>
+            <td>{task.createdAt}</td>
+            <td>
+                <DeleteTask taskId={task._id} onDelete={handleDelete} />
+            </td>
+        </tr>
+    );
+};
+Task.propTypes = {
+    task: propTypes.object
+};
 
 const TasksTable = ({ tasks }) => {
     return (
         <table>
             <thead>
                 <tr>
-                    <th>ID</th>
                     <th>Name</th>
                     <th>Created At</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {tasks.map((task) => {
-                    return (
-                        <tr key={task._id}>
-                            <td>{task._id}</td>
-                            <td>{task.input}</td>
-                            <td>{task.createdAt}</td>
-                        </tr>
-                    );
+                    return <Task task={task} key={task._id} />;
                 })}
             </tbody>
         </table>
