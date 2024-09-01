@@ -35,7 +35,12 @@ const AddConfig = function () {
                     setConfigPath('');
                     toast.success('Configuration added successfully');
                 } catch (error) {
-                    toast.error('Failed to add configuration');
+                    const httpResponseStatus = error?.response?.status;
+                    if (httpResponseStatus === 409) {
+                        toast.error('Error - Configuration already exists');
+                    } else {
+                        toast.error('Error - Failed to add configuration');
+                    }
                 }
             }());
             return p;
