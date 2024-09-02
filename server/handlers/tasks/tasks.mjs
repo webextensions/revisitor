@@ -1,7 +1,9 @@
-import express from 'express';
-
 import path, { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+
+import { createRequire } from 'node:module';
+
+import express from 'express';
 
 import Datastore from '@seald-io/nedb';
 import {
@@ -11,7 +13,11 @@ import {
 
 import notifier from '../../../utils/notifications/notifications.mjs';
 
+import { runner } from './runner/runner.mjs';
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const require = createRequire(import.meta.url);
 
 const db = new Datastore({
     filename: path.resolve(__dirname, '../../../app-data/tasks.db'),
@@ -27,6 +33,19 @@ const setupTasksRoutes = async function () {
         notifier.error('Error in Ensure Index', 'Could not ensure index on "configPath" field');
         throw e;
     }
+
+    const triggerJobSchedules = async function () {
+        const entries = await db.find({}).sort({ configPath: 1 });
+
+        for (const entry of entries) {
+            const { configPath } = entry;
+            const config = require(configPath);
+
+            await runner(config);
+        }
+    };
+    await triggerJobSchedules();
+
     const router = (
         express.Router()
             .get('/list', async function (req, res) {
