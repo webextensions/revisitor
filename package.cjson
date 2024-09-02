@@ -54,7 +54,7 @@
         "react-dom": "^18.3.1",
         "prop-types": "^15.8.1",
 
-        "@tanstack/react-query": "^5.53.1",
+        "@tanstack/react-query": "^5.53.3",
         "react-toastify": "^10.0.5",
 
         // Material UI
@@ -67,7 +67,7 @@
         "@webextensions/react": "=0.1.1",
 
         // Network
-        "ky": "^1.7.1",
+        "ky": "^1.7.2",
 
         // Database
         "@seald-io/nedb": "^4.0.4",

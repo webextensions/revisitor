@@ -8,11 +8,15 @@ import * as styles from './PageBody.css';
 
 // import { ClickToShow } from '@webextensions/react/components/ClickToShow/ClickToShow.js';
 
-import { Revisitor } from './Revisitor/Revisitor.js';
+import { Revisitor } from '../Components/Revisitor/Revisitor.js';
 
 const PageBody = function () {
     return (
         <div className={styles.PageBody}>
+            <div>
+                <Revisitor />
+            </div>
+
             {/* <div>
                 <ClickToShow type="button">
                     <div style={{ margin: 20 }}>
@@ -20,10 +24,6 @@ const PageBody = function () {
                     </div>
                 </ClickToShow>
             </div> */}
-
-            <div>
-                <Revisitor />
-            </div>
 
             {/* <div>
                 <AfterDelay delay={1000}>

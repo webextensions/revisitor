@@ -53,7 +53,7 @@ export const createTask = async (configPath) => {
 
 export const deleteTask = async (taskId) => {
     try {
-        const response = await kyForApp.instance.delete(`/tasks/delete/${taskId}`);
+        const response = await kyForApp.instance.post(`/tasks/delete/${taskId}`);
         const json = await response.json();
         return [null, json.output];
     } catch (err) {

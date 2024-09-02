@@ -80,8 +80,8 @@ const routeSetup = async function (exp) {
             })
         )
         .use('/tasks', await (await import('./handlers/tasks/tasks.mjs')).setupTasksRoutes())
-        .get('/help', (await import('./handlers/expressHandlers/expressHandlers.mjs')).expressHandlers(exp))
-        .get('/kill', (await import('./handlers/generic/kill/kill.mjs')).kill);
+        .get('/kill', (await import('./handlers/generic/kill/kill.mjs')).kill)
+        .get('/help', (await import('./handlers/expressHandlers/expressHandlers.mjs')).expressHandlers(exp));
 
     setTimeout(function () {
         // Setting up this router after a delay so that live-css server router is able to attach itself before it
@@ -298,7 +298,7 @@ const application = {
                             const directivesToUse = {
                                 ...helmet.contentSecurityPolicy.getDefaultDirectives()
                             };
-                            delete directivesToUse['upgrade-insecure-requests'];
+                            directivesToUse['upgrade-insecure-requests'] = null;
                             return directivesToUse;
                         })()
                     })

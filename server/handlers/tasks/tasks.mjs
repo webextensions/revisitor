@@ -76,7 +76,7 @@ const setupTasksRoutes = async function () {
                     }
                 }
             })
-            .delete('/delete/:taskId', async function (req, res) {
+            .post('/delete/:taskId', async function (req, res) {
                 try {
                     const { taskId } = req.params;
                     const numRemoved = await db.removeAsync({ _id: taskId }, { multi: false });
