@@ -21,16 +21,16 @@ const db = new Datastore({
 const setupTasksRoutes = async function () {
     await db.loadDatabaseAsync();
     try {
-        await db.ensureIndexAsync({ fieldName: 'input', unique: true });
+        await db.ensureIndexAsync({ fieldName: 'configPath', unique: true });
     } catch (e) {
         console.error(e);
-        notifier.error('Error in Ensure Index', 'Could not ensure index on "input" field');
+        notifier.error('Error in Ensure Index', 'Could not ensure index on "configPath" field');
         throw e;
     }
     const router = (
         express.Router()
             .get('/list', async function (req, res) {
-                const entries = await db.find({}).sort({ input: 1 });
+                const entries = await db.find({}).sort({ configPath: 1 });
                 return sendSuccessResponse(res, entries);
             })
             .get('/count', async function (req, res) {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import propTypes from 'prop-types';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Loading } from '../../../../../ImportedComponents/Loading/Loading.js';
 
@@ -15,13 +15,11 @@ import { AddConfig } from '../AddConfig/AddConfig.js';
 
 const DeleteTask = ({ taskId, onDelete }) => {
     const {
-        refetch,
+        mutate,
         status,
-        fetchStatus
-    } = useQuery({
-        enabled: false,
-        queryKey: ['deleteTask', taskId],
-        queryFn: () => {
+        isPending
+    } = useMutation({
+        mutationFn: () => {
             const p = errAndDataArrayToPromise(deleteTask, [taskId]);
             return p;
         }
@@ -32,13 +30,13 @@ const DeleteTask = ({ taskId, onDelete }) => {
     }
     return (
         <button
-            disabled={fetchStatus === 'fetching'}
+            disabled={isPending}
             onClick={async () => {
-                await refetch();
+                await mutate();
                 onDelete();
             }}
         >
-            {fetchStatus === 'fetching' ? 'Deleting...' : 'Delete'}
+            {isPending ? 'Deleting...' : 'Delete'}
         </button>
     );
 };
@@ -60,7 +58,7 @@ const Task = ({ task }) => {
                 opacity: deleted ? 0.5 : undefined
             }}
         >
-            <td>{task.input}</td>
+            <td>{task.configPath}</td>
             <td>{task.createdAt}</td>
             <td>
                 <DeleteTask taskId={task._id} onDelete={handleDelete} />
@@ -85,7 +83,7 @@ const TasksTable = ({ tasks }) => {
         <table>
             <thead>
                 <tr>
-                    <th>Name</th>
+                    <th>Config Path</th>
                     <th>Created At</th>
                     <th>Actions</th>
                 </tr>

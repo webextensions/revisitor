@@ -37,11 +37,11 @@ export const countTasks = async () => {
     }
 };
 
-export const createTask = async (task) => {
+export const createTask = async (configPath) => {
     try {
         const response = await kyForApp.instance.post('/tasks/create', {
             json: {
-                input: task
+                configPath
             }
         });
         const json = await response.json();

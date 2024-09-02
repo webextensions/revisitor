@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { toast } from '../../../../../ImportedComponents/react-toastify.js';
 
@@ -16,16 +16,10 @@ const AddConfig = function () {
     const queryClient = useQueryClient();
 
     const {
-        // isPending,
         isLoading,
-        // error,
-        // data,
-        // isFetched,
-        refetch
-    } = useQuery({
-        enabled: false,
-        queryKey: ['dummyData'],
-        queryFn: function () {
+        mutate
+    } = useMutation({
+        mutationFn: function () {
             const p = errAndDataArrayToPromise(createTask, [configPath]);
             (async function () {
                 try {
@@ -64,7 +58,7 @@ const AddConfig = function () {
                             !isLoading &&
                             configPath
                         ) {
-                            refetch();
+                            mutate();
                         }
                     }}
                 />
@@ -74,7 +68,7 @@ const AddConfig = function () {
                     type="button"
                     disabled={isLoading || !configPath}
                     onClick={function () {
-                        refetch();
+                        mutate();
                     }}
                 >
                     {isLoading ? 'Adding...' : 'Add'}
