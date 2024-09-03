@@ -56,10 +56,9 @@ const Task = ({ task }) => {
         <tr
             style={{
                 height: 24,
-                cursor: deleted ? 'not-allowed' : undefined,
                 opacity: deleted ? 0.5 : undefined
             }}
-            className={deleted ? 'not-allowed' : undefined}
+            className={deleted ? 'no-pointer-events' : undefined}
         >
             <td>{task.configPath}</td>
             <td>{task.createdAt}</td>

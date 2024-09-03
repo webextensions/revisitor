@@ -41,7 +41,10 @@
     }
 }
 
-:global(.not-allowed),
-:global(.not-allowed *) {
+:global(.no-pointer-events) {
+    pointer-events: none;
+}
+
+:global(.not-allowed) {
     cursor: not-allowed;
 }
