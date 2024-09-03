@@ -1,0 +1,47 @@
+:global(.bold) {
+    font-weight: bold;
+}
+
+:global(.italic) {
+    font-style: italic;
+}
+
+:global(.underline) {
+    text-decoration: underline;
+}
+
+:global(.strike) {
+    text-decoration: line-through;
+}
+
+:global(.textAlignCenter) {
+    text-align: center;
+}
+
+:global(.opacity50UntilHover)       { opacity: 0.5;   }
+:global(.opacity50UntilHover:hover) { opacity: unset; }
+:global(.opacity75UntilHover)       { opacity: 0.75;  }
+:global(.opacity75UntilHover:hover) { opacity: unset; }
+:global(.opacity85UntilHover)       { opacity: 0.75;  }
+:global(.opacity85UntilHover:hover) { opacity: unset; }
+
+:global(.color_777) {
+    color: #777;
+}
+:global(.bgColor_eee) {
+    background-color: #eee;
+}
+
+:global(.hideForContainerLT350) {
+    display: none;
+}
+@container (min-width: 350px) {
+    :global(.hideForContainerLT350) {
+        display: block;
+    }
+}
+
+:global(.not-allowed),
+:global(.not-allowed *) {
+    cursor: not-allowed;
+}

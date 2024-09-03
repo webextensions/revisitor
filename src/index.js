@@ -4,6 +4,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client'; // eslint-disable-line node/file-extension-in-import
 
 import './index.css';
+import './utility-classes.css';
 
 import { App } from './App/App.js';
 

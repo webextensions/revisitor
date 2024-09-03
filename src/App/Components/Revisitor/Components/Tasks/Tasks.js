@@ -58,6 +58,7 @@ const Task = ({ task }) => {
                 cursor: deleted ? 'not-allowed' : undefined,
                 opacity: deleted ? 0.5 : undefined
             }}
+            className={deleted ? 'not-allowed' : undefined}
         >
             <td>{task.configPath}</td>
             <td>{task.createdAt}</td>
