@@ -37,7 +37,7 @@ export const countTasks = async () => {
     }
 };
 
-export const createTask = async (configPath) => {
+export const createTask = async ({ configPath }) => {
     try {
         const response = await kyForApp.instance.post('/tasks/create', {
             json: {
@@ -51,7 +51,24 @@ export const createTask = async (configPath) => {
     }
 };
 
-export const deleteTask = async (taskId) => {
+export const triggerTask = async ({ taskId, waitForCompletion }) => {
+    try {
+        const response = await kyForApp.instance.post('/tasks/trigger', {
+            json: {
+                taskId,
+                waitForCompletion
+            },
+            // When `waitForCompletion` is truthy, it would be a long running task
+            timeout: waitForCompletion ? false : undefined
+        });
+        const json = await response.json();
+        return [null, json.output];
+    } catch (err) {
+        return [err, null];
+    }
+};
+
+export const deleteTask = async ({ taskId }) => {
     try {
         const response = await kyForApp.instance.post(`/tasks/delete/${taskId}`);
         const json = await response.json();

@@ -20,7 +20,7 @@ const AddConfig = function () {
         mutate
     } = useMutation({
         mutationFn: function () {
-            const p = errAndDataArrayToPromise(createTask, [configPath]);
+            const p = errAndDataArrayToPromise(createTask, [{ configPath }]);
             (async function () {
                 try {
                     await p;

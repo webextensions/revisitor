@@ -30,7 +30,13 @@ const sendSuccessResponse = function (res, output) {
     return res.send(responseToSend);
 };
 
+const sendSuccessResponseAsAccepted = function (res, output) {
+    res.status(202);
+    return sendSuccessResponse(res, output);
+};
+
 export {
     sendErrorResponse,
-    sendSuccessResponse
+    sendSuccessResponse,
+    sendSuccessResponseAsAccepted
 };

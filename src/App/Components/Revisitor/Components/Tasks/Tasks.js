@@ -12,6 +12,7 @@ import {
 } from '../../../../dal.js';
 
 import { AddConfig } from '../AddConfig/AddConfig.js';
+import { Trigger } from './Trigger.js';
 
 const DeleteTask = ({ taskId, onDelete }) => {
     const {
@@ -20,7 +21,7 @@ const DeleteTask = ({ taskId, onDelete }) => {
         isPending
     } = useMutation({
         mutationFn: () => {
-            const p = errAndDataArrayToPromise(deleteTask, [taskId]);
+            const p = errAndDataArrayToPromise(deleteTask, [{ taskId }]);
             return p;
         }
     });
@@ -54,12 +55,15 @@ const Task = ({ task }) => {
         <tr
             style={{
                 height: 24,
-                cursor: deleted ? 'not-allowed' : 'pointer',
+                cursor: deleted ? 'not-allowed' : undefined,
                 opacity: deleted ? 0.5 : undefined
             }}
         >
             <td>{task.configPath}</td>
             <td>{task.createdAt}</td>
+            <td>
+                <Trigger taskId={task._id} />
+            </td>
             <td>
                 <DeleteTask taskId={task._id} onDelete={handleDelete} />
             </td>
@@ -85,6 +89,7 @@ const TasksTable = ({ tasks }) => {
                 <tr>
                     <th>Config Path</th>
                     <th>Created At</th>
+                    <th>Trigger</th>
                     <th>Actions</th>
                 </tr>
             </thead>

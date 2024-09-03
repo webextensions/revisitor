@@ -8,7 +8,8 @@ import express from 'express';
 import Datastore from '@seald-io/nedb';
 import {
     sendErrorResponse,
-    sendSuccessResponse
+    sendSuccessResponse,
+    sendSuccessResponseAsAccepted
 } from '../../utils/express-utils/express-utils.mjs';
 
 import notifier from '../../../utils/notifications/notifications.mjs';
@@ -34,6 +35,7 @@ const setupTasksRoutes = async function () {
         throw e;
     }
 
+    /*
     const triggerJobSchedules = async function () {
         const entries = await db.find({}).sort({ configPath: 1 });
 
@@ -41,10 +43,11 @@ const setupTasksRoutes = async function () {
             const { configPath } = entry;
             const config = require(configPath);
 
-            await runner(config);
+            await runner(config, configPath);
         }
     };
     await triggerJobSchedules();
+    /* */
 
     const router = (
         express.Router()
@@ -74,6 +77,36 @@ const setupTasksRoutes = async function () {
                         console.error(err);
                         return sendErrorResponse(res, 500, 'Internal Server Error');
                     }
+                }
+            })
+            .post('/trigger', async function (req, res) {
+                try {
+                    const {
+                        taskId,
+                        waitForCompletion
+                    } = req.body;
+
+                    const task = await db.findOneAsync({ _id: taskId });
+                    if (!task) {
+                        return sendErrorResponse(res, 404, 'Task not found');
+                    }
+
+                    const { configPath } = task;
+
+                    const config = require(configPath);
+
+                    if (waitForCompletion) {
+                        await runner(config, configPath);
+                        return sendSuccessResponse(res, 'Completed');
+                    } else {
+                        (async () => {
+                            await runner(config, configPath);
+                        })();
+                        return sendSuccessResponseAsAccepted(res, 'Accepted');
+                    }
+                } catch (err) {
+                    console.error(err);
+                    return sendErrorResponse(res, 500, 'Internal Server Error');
                 }
             })
             .post('/delete/:taskId', async function (req, res) {
