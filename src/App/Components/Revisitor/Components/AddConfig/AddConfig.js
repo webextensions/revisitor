@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { toast } from '../../../../../ImportedComponents/react-toastify.js';
 
-import { errAndDataArrayToPromise } from '../../../../utils/errAndDataArrayToPromise.js';
+import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
 
 import { createTask } from '../../../../dal.js';
 
@@ -20,24 +20,25 @@ const AddConfig = function () {
         mutate
     } = useMutation({
         mutationFn: function () {
-            const p = errAndDataArrayToPromise(createTask, [{ configPath }]);
+            const p = createTask({ configPath });
             (async function () {
-                try {
-                    await p;
-                    // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
-                    queryClient.invalidateQueries(['tasksList']);
-                    setConfigPath('');
-                    toast.success('Configuration added successfully');
-                } catch (error) {
-                    const httpResponseStatus = error?.response?.status;
+                const [err] = await p;
+                if (err) {
+                    const httpResponseStatus = err?.response?.status;
                     if (httpResponseStatus === 409) {
                         toast.error('Error - Configuration already exists');
                     } else {
                         toast.error('Error - Failed to add configuration');
                     }
+                } else {
+                    // TODO: HARDCODING: Get rid of this hardcoding ('tasksList')
+                    queryClient.invalidateQueries(['tasksList']);
+                    setConfigPath('');
+                    toast.success('Configuration added successfully');
                 }
             }());
-            return p;
+            const querifiedP = safeArrayPromiseToErrorPromise(p);
+            return querifiedP;
         }
     });
 

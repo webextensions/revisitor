@@ -3,7 +3,7 @@ import propTypes from 'prop-types';
 
 import { useMutation } from '@tanstack/react-query';
 
-import { errAndDataArrayToPromise } from '../../../../utils/errAndDataArrayToPromise.js';
+import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
 
 import { triggerTask } from '../../../../dal.js';
 
@@ -14,11 +14,12 @@ const Trigger = ({ taskId }) => {
         isPending
     } = useMutation({
         mutationFn: () => {
-            const p = errAndDataArrayToPromise(triggerTask, [{
+            const p = triggerTask({
                 taskId,
                 waitForCompletion: true
-            }]);
-            return p;
+            });
+            const querifiedP = safeArrayPromiseToErrorPromise(p);
+            return querifiedP;
         }
     });
     return (
