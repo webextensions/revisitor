@@ -51,6 +51,20 @@ export const createTask = async ({ configPath }) => {
     }
 };
 
+export const patchTask = async ({ taskId, hasCrons }) => {
+    try {
+        const response = await kyForApp.instance.post(`/tasks/patch/${taskId}`, {
+            json: {
+                hasCrons
+            }
+        });
+        const json = await response.json();
+        return [null, json.output];
+    } catch (err) {
+        return [err, null];
+    }
+};
+
 export const triggerTask = async ({ taskId, waitForCompletion }) => {
     try {
         const response = await kyForApp.instance.post('/tasks/trigger', {

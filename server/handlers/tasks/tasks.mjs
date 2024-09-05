@@ -25,6 +25,35 @@ const db = new Datastore({
     autoload: true
 });
 
+const createTask = async function ({ configPath }) {
+    try {
+        const config = require(configPath);
+        let hasCrons = false;
+        if (config?.runAndReport?.crons) {
+            hasCrons = true;
+        }
+        const taskToInsert = {
+            configPath,
+            hasCrons,
+            createdAt: new Date()
+        };
+        const newDoc = await db.insertAsync(taskToInsert);
+        return [null, newDoc];
+    } catch (err) {
+        return [err];
+    }
+};
+
+const getTask = async function ({ taskId }) {
+    try {
+        const task = await db.findOneAsync({ _id: taskId });
+        // FIXME: Check how the API works. In case the task does not exist, then an error should be returned
+        return [null, task];
+    } catch (err) {
+        return [err];
+    }
+};
+
 const setupTasksRoutes = async function () {
     await db.loadDatabaseAsync();
     try {
@@ -63,20 +92,47 @@ const setupTasksRoutes = async function () {
                 try {
                     const input = req.body;
 
-                    const task = {
-                        ...input,
-                        createdAt: new Date()
-                    };
+                    const { configPath } = input;
 
-                    const newDoc = await db.insertAsync(task);
-                    return sendSuccessResponse(res, newDoc);
-                } catch (err) {
-                    if (err.errorType === 'uniqueViolated') {
-                        return sendErrorResponse(res, 409, 'Task already exists');
+                    const [err, newDoc] = await createTask({ configPath });
+
+                    if (err) {
+                        if (err.errorType === 'uniqueViolated') {
+                            return sendErrorResponse(res, 409, 'Task already exists');
+                        } else {
+                            console.error(err);
+                            return sendErrorResponse(res, 500, 'Internal Server Error');
+                        }
                     } else {
+                        return sendSuccessResponse(res, newDoc);
+                    }
+                } catch (err) {
+                    console.error(err);
+                    return sendErrorResponse(res, 500, 'Internal Server Error');
+                }
+            })
+            .post('/patch/:taskId', async function (req, res) {
+                try {
+                    const { taskId } = req.params;
+                    const input = req.body;
+
+                    const { hasCrons } = input;
+
+                    const [err, task] = await getTask({ taskId });
+                    if (err) {
                         console.error(err);
                         return sendErrorResponse(res, 500, 'Internal Server Error');
                     }
+
+                    const taskCloned = structuredClone(task);
+                    taskCloned.hasCrons = !!hasCrons;
+
+                    // eslint-disable-next-line no-unused-vars
+                    const numUpdated = await db.updateAsync({ _id: taskId }, taskCloned, {});
+                    return sendSuccessResponse(res, taskCloned);
+                } catch (err) {
+                    console.error(err);
+                    return sendErrorResponse(res, 500, 'Internal Server Error');
                 }
             })
             .post('/trigger', async function (req, res) {

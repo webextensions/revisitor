@@ -13,6 +13,7 @@ import {
 
 import { AddConfig } from '../AddConfig/AddConfig.js';
 import { Trigger } from './Trigger.js';
+import { CronToggle } from './CronToggle.js';
 
 const DeleteTask = ({ taskId, onDelete }) => {
     const {
@@ -66,6 +67,9 @@ const Task = ({ task }) => {
                 <Trigger taskId={task._id} />
             </td>
             <td>
+                <CronToggle taskId={task._id} hasCrons={task.hasCrons} />
+            </td>
+            <td>
                 <DeleteTask taskId={task._id} onDelete={handleDelete} />
             </td>
         </tr>
@@ -91,6 +95,7 @@ const TasksTable = ({ tasks }) => {
                     <th>Config Path</th>
                     <th>Created At</th>
                     <th>Trigger</th>
+                    <th>Cron</th>
                     <th>Actions</th>
                 </tr>
             </thead>
