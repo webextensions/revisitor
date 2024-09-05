@@ -24,6 +24,9 @@
         "webpack-dev-middleware": "^7.4.2",
         "webpack-hot-middleware": "^2.26.1",
 
+        // Environment
+        "dotenv": "^16.4.5",
+
         // Server - Express
         "express": "^4.19.2",
 

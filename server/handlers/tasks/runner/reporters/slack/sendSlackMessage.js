@@ -7,7 +7,11 @@ const sendSlackMessage = async function ({ webhookUrl, message }) {
         try {
             // eslint-disable-next-line import/no-unresolved
             const got = (await import('got')).default;
-            const response = await got.post(webhookUrl, {
+            let webhookUrlToUse = webhookUrl;
+            if (process.env.OVERRIDE_SLACK_WEBHOOK_URL) {
+                webhookUrlToUse = process.env.OVERRIDE_SLACK_WEBHOOK_URL;
+            }
+            const response = await got.post(webhookUrlToUse, {
                 json: {
                     text: message
                 },

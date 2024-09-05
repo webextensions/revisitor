@@ -6,6 +6,8 @@
 
 import { Command } from 'commander';
 
+import './envLoader.mjs';
+
 import { application } from './application.mjs';
 
 const program = new Command();
