@@ -47,8 +47,12 @@ const createTask = async function ({ configPath }) {
 const getTask = async function ({ taskId }) {
     try {
         const task = await db.findOneAsync({ _id: taskId });
-        // FIXME: Check how the API works. In case the task does not exist, then an error should be returned
-        return [null, task];
+
+        if (!task) {
+            return [new Error('Task not found')];
+        } else {
+            return [null, task];
+        }
     } catch (err) {
         return [err];
     }
