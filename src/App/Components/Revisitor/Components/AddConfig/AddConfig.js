@@ -86,6 +86,7 @@ const AddConfig = function () {
                 <Button
                     variant="contained"
                     startIcon={<AddIcon />}
+                    size="small"
                     disabled={isLoading || !configPath}
                     style={{ marginLeft: 20 }}
                     onClick={function () {
