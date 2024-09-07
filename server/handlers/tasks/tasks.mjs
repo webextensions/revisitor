@@ -1,9 +1,13 @@
+// TODO: FIXME: If a project is schedule, but not setup, then its execution wouldn't work
+
 import path, { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { createRequire } from 'node:module';
 
 import express from 'express';
+
+import cronstrue from 'cronstrue';
 
 import Datastore from '@seald-io/nedb';
 import {
@@ -12,7 +16,12 @@ import {
     sendSuccessResponseAsAccepted
 } from '../../utils/express-utils/express-utils.mjs';
 
+import { simpleid } from '@webextensions/simpleid';
+
 import notifier from '../../../utils/notifications/notifications.mjs';
+
+import { pinoLogger } from './runner/utils/pinoLogger.mjs';
+import { cronScheduler } from './runner/utils/cronScheduler.mjs';
 
 import { runner } from './runner/runner.mjs';
 
@@ -25,16 +34,21 @@ const db = new Datastore({
     autoload: true
 });
 
-const createTask = async function ({ configPath }) {
+const createTask = async function ({ configPath, enableRecommendedCrons }) {
     try {
         const config = require(configPath);
-        let hasCrons = false;
-        if (config?.runAndReport?.crons) {
-            hasCrons = true;
+
+        const crons = {};
+
+        if (config?.runAndReport?.recommendedCrons) {
+            const recommendedCrons = config.runAndReport.recommendedCrons;
+            for (const cron of recommendedCrons) {
+                crons[cron] = !!enableRecommendedCrons;
+            }
         }
         const taskToInsert = {
             configPath,
-            hasCrons,
+            crons,
             createdAt: new Date()
         };
         const newDoc = await db.insertAsync(taskToInsert);
@@ -58,14 +72,100 @@ const getTask = async function ({ taskId }) {
     }
 };
 
-const setupTasksRoutes = async function () {
-    await db.loadDatabaseAsync();
+const ensureDatabaseSetup = async function () {
     try {
+        await db.loadDatabaseAsync();
         await db.ensureIndexAsync({ fieldName: 'configPath', unique: true });
+        return [null];
     } catch (e) {
         console.error(e);
         notifier.error('Error in Ensure Index', 'Could not ensure index on "configPath" field');
-        throw e;
+        return [e];
+    }
+};
+
+const setupCrons = async function () {
+    try {
+        const entries = (
+            await db
+                .find({})
+                .sort({ createdAt: 1 })
+        );
+
+        for (const entry of entries) {
+            const { configPath } = entry;
+            const config = require(configPath);
+
+            const cronsToCheck = entry.crons || {};
+
+            const enabledCrons = {};
+
+            for (const cron in cronsToCheck) {
+                if (cronsToCheck[cron]) {
+                    enabledCrons[cron] = true;
+                }
+            }
+
+            if (Object.keys(enabledCrons).length === 0) {
+                continue;
+            }
+
+            const [errGetCallMainExecution, doCallMainExecution] = await runner({
+                taskConfig: config,
+                configPath,
+                purpose: 'schedule'
+            });
+            if (errGetCallMainExecution) {
+                console.error('Error in getting callMainExecution');
+                console.error(errGetCallMainExecution);
+                throw errGetCallMainExecution;
+            }
+
+            global.scheduledJobs = global.scheduledJobs || {};
+
+            for (const cron in enabledCrons) {
+                const id = simpleid();
+                global.scheduledJobs[id] = true;
+                cronScheduler({
+                    id,
+                    cronStr: cron,
+                    fn: async function () {
+                        const [err] = await doCallMainExecution({
+                            source: 'cron'
+                        });
+                        if (err) {
+                            console.error(err);
+                            notifier.error('Error in Task Execution', 'Error in Task Execution');
+                        }
+                    }
+                });
+
+                pinoLogger.info(`Scheduled cron: ${cronstrue.toString(cron, { verbose: true })} for tasks provided at ${configPath}`);
+            }
+        }
+        return [null];
+    } catch (err) {
+        console.error(err);
+        console.error('Error in Crons Setup - Could not setup crons');
+        notifier.error('Error in Crons Setup', 'Could not setup crons');
+        return [err];
+    }
+};
+
+const setupTasksRoutes = async function () {
+    const [err] = await ensureDatabaseSetup();
+    if (err) {
+        console.error(err);
+        notifier.error('Error in Database Setup', 'Could not setup database');
+        throw err;
+    }
+
+    const [errSetupCrons] = await setupCrons();
+
+    if (errSetupCrons) {
+        console.error(err);
+        notifier.error('Error in Crons Setup', 'Could not setup crons');
+        throw err;
     }
 
     /*
@@ -76,7 +176,11 @@ const setupTasksRoutes = async function () {
             const { configPath } = entry;
             const config = require(configPath);
 
-            await runner(config, configPath);
+            const [err, doCallMainExecution] = await runner({
+                taskConfig: config,
+                configPath
+            });
+            await doCallMainExecution();
         }
     };
     await triggerJobSchedules();
@@ -96,9 +200,15 @@ const setupTasksRoutes = async function () {
                 try {
                     const input = req.body;
 
-                    const { configPath } = input;
+                    const {
+                        configPath,
+                        enableRecommendedCrons
+                    } = input;
 
-                    const [err, newDoc] = await createTask({ configPath });
+                    const [err, newDoc] = await createTask({
+                        configPath,
+                        enableRecommendedCrons
+                    });
 
                     if (err) {
                         if (err.errorType === 'uniqueViolated') {
@@ -120,7 +230,7 @@ const setupTasksRoutes = async function () {
                     const { taskId } = req.params;
                     const input = req.body;
 
-                    const { hasCrons } = input;
+                    const { crons } = input;
 
                     const [err, task] = await getTask({ taskId });
                     if (err) {
@@ -129,7 +239,7 @@ const setupTasksRoutes = async function () {
                     }
 
                     const taskCloned = structuredClone(task);
-                    taskCloned.hasCrons = !!hasCrons;
+                    taskCloned.crons = crons;
 
                     // eslint-disable-next-line no-unused-vars
                     const numUpdated = await db.updateAsync({ _id: taskId }, taskCloned, {});
@@ -155,12 +265,24 @@ const setupTasksRoutes = async function () {
 
                     const config = require(configPath);
 
+                    const fn = async function () {
+                        // TODO: FIXME: Handle error
+                        // eslint-disable-next-line no-unused-vars
+                        const [errRunner, doCallMainExecution] = await runner({
+                            taskConfig: config,
+                            configPath,
+                            purpose: 'execute'
+                        });
+                        // TODO: FIXME: Handle error
+                        await doCallMainExecution({ source: 'command' });
+                    };
+
                     if (waitForCompletion) {
-                        await runner(config, configPath);
+                        await fn();
                         return sendSuccessResponse(res, 'Completed');
                     } else {
                         (async () => {
-                            await runner(config, configPath);
+                            await fn();
                         })();
                         return sendSuccessResponseAsAccepted(res, 'Accepted');
                     }

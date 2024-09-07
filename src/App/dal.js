@@ -37,11 +37,12 @@ export const countTasks = async () => {
     }
 };
 
-export const createTask = async ({ configPath }) => {
+export const createTask = async ({ configPath, enableRecommendedCrons }) => {
     try {
         const response = await kyForApp.instance.post('/tasks/create', {
             json: {
-                configPath
+                configPath,
+                enableRecommendedCrons
             }
         });
         const json = await response.json();
@@ -51,11 +52,11 @@ export const createTask = async ({ configPath }) => {
     }
 };
 
-export const patchTask = async ({ taskId, hasCrons }) => {
+export const patchTask = async ({ taskId, crons }) => {
     try {
         const response = await kyForApp.instance.post(`/tasks/patch/${taskId}`, {
             json: {
-                hasCrons
+                crons
             }
         });
         const json = await response.json();

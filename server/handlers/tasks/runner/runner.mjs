@@ -19,6 +19,8 @@ import {
     pinoJsonBeautifier
 } from './utils/pinoLogger.mjs';
 
+import notifier from '../../../../utils/notifications/notifications.mjs';
+
 import { formatLine } from './appUtils/formatLine.js';
 import { generateProjectReport } from './appUtils/generateProjectReport.js';
 import { getLogOrWarnOrSkipWarnOrError } from './appUtils/getLogOrWarnOrSkipWarnOrError.js';
@@ -342,411 +344,417 @@ const mainExecution = async function ({
     runAndReport,
     projects
 }) {
-    const forRunner = {
-        title: config.title || 'Task Runner',
-        time: Date.now(),
-        reports: []
-    };
+    try {
+        const forRunner = {
+            title: config.title || 'Task Runner',
+            time: Date.now(),
+            reports: []
+        };
 
-    const reportIfError = new ReportIfError({ reporters });
+        const reportIfError = new ReportIfError({ reporters });
 
-    for (const project of projects) {
-        await reportIfError.run(async () => {
-            const {
-                id,
-                title
-            } = project;
+        for (const project of projects) {
+            await reportIfError.run(async () => {
+                const {
+                    id,
+                    title
+                } = project;
 
-            logger.log(`\n➤ Project: ${title}`);
-            // logAndStore(forProject.reports, 'log', `\n➤ Project: ${title}`);
+                logger.log(`\n➤ Project: ${title}`);
+                // logAndStore(forProject.reports, 'log', `\n➤ Project: ${title}`);
 
-            const forProject = {
-                time: Date.now(),
-                id,
-                title,
-                reports: []
-            };
+                const forProject = {
+                    time: Date.now(),
+                    id,
+                    title,
+                    reports: []
+                };
 
-            const forProject_status = {
-                time: Date.now(),
-                branches: {}
-            };
+                const forProject_status = {
+                    time: Date.now(),
+                    branches: {}
+                };
 
-            process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
+                process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
 
-            // eslint-disable-next-line no-unused-vars
-            const [errFileRead, oldExecutionStatsFileContents] = tryCatchSafe(() => {
-                const output = fs.readFileSync(`${id}.json`, 'utf8');
-                return output;
-            }, '[]');
+                // eslint-disable-next-line no-unused-vars
+                const [errFileRead, oldExecutionStatsFileContents] = tryCatchSafe(() => {
+                    const output = fs.readFileSync(`${id}.json`, 'utf8');
+                    return output;
+                }, '[]');
 
-            // eslint-disable-next-line no-unused-vars
-            const [errJsonParse, oldStatusJson] = tryCatchSafe(() => {
-                const output = JSON.parse(oldExecutionStatsFileContents);
-                return output;
-            }, []);
-            const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
+                // eslint-disable-next-line no-unused-vars
+                const [errJsonParse, oldStatusJson] = tryCatchSafe(() => {
+                    const output = JSON.parse(oldExecutionStatsFileContents);
+                    return output;
+                }, []);
+                const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
 
-            process.chdir(id);
-            const cwd = process.cwd();
-            pinoLogger.debug(`Current working directory: ${cwd}`);
+                process.chdir(id);
+                const cwd = process.cwd();
+                pinoLogger.debug(`Current working directory: ${cwd}`);
 
-            await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
+                await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
 
-            for (const branch of project.branches) {
-                await reportIfError.run(async () => {
-                    logger.log(`    ➤ Branch: ${branch}`);
-                    // logAndStore(forBranch.reports, 'log', `    ➤ Branch: ${branch}`);
+                for (const branch of project.branches) {
+                    await reportIfError.run(async () => {
+                        logger.log(`    ➤ Branch: ${branch}`);
+                        // logAndStore(forBranch.reports, 'log', `    ➤ Branch: ${branch}`);
 
-                    const forBranch = {
-                        time: Date.now(),
-                        branch,
-                        reports: []
-                    };
+                        const forBranch = {
+                            time: Date.now(),
+                            branch,
+                            reports: []
+                        };
 
-                    const forBranch_status_lastExecution = forProject_status_lastExecution?.branches[branch];
+                        const forBranch_status_lastExecution = forProject_status_lastExecution?.branches[branch];
 
-                    const forBranch_status = {};
-                    forProject_status.branches[branch] = {
-                        jobs: forBranch_status
-                    };
+                        const forBranch_status = {};
+                        forProject_status.branches[branch] = {
+                            jobs: forBranch_status
+                        };
 
-                    if (branch !== '{project-level-jobs}') {
-                        await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
-                        await $(execaConfig)`git reset --hard origin/${branch}`;
-                    }
+                        if (branch !== '{project-level-jobs}') {
+                            await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
+                            await $(execaConfig)`git reset --hard origin/${branch}`;
+                        }
 
-                    for (const job of project.jobs) {
-                        await reportIfError.run(async () => {
-                            const {
-                                type,
-                                runOnceForProject,
-                                runForBranches
-                            } = job;
-                            const computedJobId = job.type + (job.id ? ('-' + job.id) : '');
-
-                            if (runOnceForProject) {
-                                if (branch !== '{project-level-jobs}') {
-                                    return;
-                                }
-                            } else {
-                                if (branch === '{project-level-jobs}') {
-                                    return;
-                                }
-                            }
-
-                            if (
-                                runForBranches &&
-                                !runForBranches.includes(branch)
-                            ) {
-                                return;
-                            }
-
-                            logger.log(`        ➤ Job: ${type}`);
-                            // logAndStore(forBranch.reports, 'log', `        ➤ Job: ${type}`);
-
-                            const forJob = {
-                                time: Date.now(),
-                                type,
-                                id: computedJobId,
-                                reports: []
-                            };
-
-                            const forJob_statusData = {};
-                            const forJob_status = {
-                                status: forJob_statusData
-                            };
-
-                            forBranch_status[computedJobId] = forJob_status;
-
-                            const forJobData_status_lastExecution = forBranch_status_lastExecution?.jobs[computedJobId]?.status;
-
-                            if (type === 'gitBranchesCount') {
-                                const { options } = job;
-
-                                const t1 = Date.now();
-                                await $(execaConfig)`git remote prune origin`;
-                                const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
-                                const t2 = Date.now();
-                                let durationToAppend = '';
-                                if (reportDuration) {
-                                    durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
-                                }
-                                const branchesCount = parseInt(branches.stdout.trim());
-                                forJob_statusData.branchesCount = branchesCount;
-
-                                const lastExecutionBranchesCount = forJobData_status_lastExecution?.branchesCount;
-
-                                const whatToDo = getLogOrWarnOrSkipWarnOrError({
-                                    reportContents_job,
-                                    limit: options.limit,
-                                    deltaDirection: 'increment',
-                                    count: branchesCount,
-                                    lastExecutionCount: lastExecutionBranchesCount
-                                });
-
-                                if (whatToDo === 'error') {
-                                    logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Branches count: ${branchesCount} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
-                                } else if (whatToDo === 'warn') {
-                                    logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
-                                } else if (whatToDo === 'skipWarn') {
-                                    logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
-                                } else {
-                                    logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Branches count: ${branchesCount}`,                                                              ...durationToAppend]);
-                                }
-                            } else if (type === 'nodeOutdated') {
-                                const t1 = Date.now();
-
-                                const { options } = job;
-
-                                let versionToEnsure;
-                                if (options.approach === '.nvmrc') {
-                                    // Read the .nvmrc file
-                                    const nvmrcContents = fs.readFileSync('.nvmrc', 'utf8');
-                                    versionToEnsure = nvmrcContents.trim();
-                                    if (versionToEnsure.indexOf('v') !== 0) {
-                                        versionToEnsure = 'v' + versionToEnsure;
-                                    }
-                                }
-
-                                const taggedVersions = await tagNodeVersions();
-
-                                let range;
-
-                                if (options.ensure === 'latest') {
-                                    range = taggedVersions.latest;
-                                } else if (options.ensure === 'stable') {
-                                    range = taggedVersions.stable;
-                                } else if (options.ensure === 'stable~1') {
-                                    range = taggedVersions.stableTilde1;
-                                } else { // options.ensure === 'stable~2'
-                                    range = taggedVersions.stableTilde2;
-                                }
-
-                                if (options.ensureStrategy === 'major') {
-                                    range = '>=' + semver.major(range) + '.x.x';
-                                } else if (options.ensureStrategy === 'minor') {
-                                    range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.x';
-                                } else { // options.ensureStrategy === 'patch'
-                                    range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.' + semver.patch(range);
-                                }
-
-                                const flagSatisfied = semver.satisfies(versionToEnsure, range);
-
-                                const t2 = Date.now();
-                                let durationToAppend = '';
-                                if (reportDuration) {
-                                    durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
-                                }
-
-                                forJob_statusData.outdated = flagSatisfied ? null : versionToEnsure;
-
-                                let whatToDo;
-
-                                if (flagSatisfied) {
-                                    whatToDo = 'log';
-                                } else {
-                                    if (options.failureStatus === 'warn') {
-                                        whatToDo = 'warn';
-                                    } else {
-                                        whatToDo = 'error';
-                                    }
-                                }
-
-                                if (whatToDo === 'log') {
-                                    logAndStore(forJob.reports, 'log',   [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Node version: ${versionToEnsure} is satisfied by ${range}`, ...durationToAppend]);
-                                } else if (whatToDo === 'warn') {
-                                    logAndStore(forJob.reports, 'warn',  [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
-                                } else { // whatToDo === 'error'
-                                    logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red',    message: `✗ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
-                                }
-                            } else if (type === 'npmOutdated') {
-                                const { options } = job;
-                                const { approach } = options;
-
-                                const t1 = Date.now();
-                                const outdated = await $`npx --yes npm-check-updates --jsonUpgraded`;
-                                const t2 = Date.now();
-                                let durationToAppend = '';
-                                if (reportDuration) {
-                                    durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
-                                }
-                                const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
-                                let outdatedJson = Object.entries(outdatedJsonObj);
-
-                                switch (approach) {
-                                    case 'skipExactVersion': {
-                                        // eslint-disable-next-line no-unused-vars
-                                        outdatedJson = outdatedJson.filter(([packageName, packageVersion]) => {
-                                            if (packageVersion.charAt(0) === '^' || packageVersion.charAt(0) === '~') {
-                                                return true;
-                                            } else {
-                                                return false;
-                                            }
-                                        });
-                                        break;
-                                    }
-                                    case 'all':
-                                    default: {
-                                        // do nothing
-                                    }
-                                }
-
-                                forJob_statusData.outdated = outdatedJson;
-
-                                const lastExecutionOutdated = forJobData_status_lastExecution?.outdated;
-
-                                const whatToDo = getLogOrWarnOrSkipWarnOrError({
-                                    reportContents_job,
-                                    limit: options.limit,
-                                    deltaDirection: 'increment',
-                                    count: outdatedJson.length,
-                                    lastExecutionCount: lastExecutionOutdated?.length
-                                });
-
-                                if (whatToDo === 'error') {
-                                    logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
-                                } else if (whatToDo === 'warn') {
-                                    logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
-                                } else if (whatToDo === 'skipWarn') {
-                                    logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
-                                } else {
-                                    logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Outdated npm packages count: ${outdatedJson.length}`,                                                              ...durationToAppend]);
-                                }
-                            } else if (type === 'npmInstall') {
-                                const { options } = job;
+                        for (const job of project.jobs) {
+                            await reportIfError.run(async () => {
                                 const {
-                                    approach,
-                                    attempts
-                                } = options;
+                                    type,
+                                    runOnceForProject,
+                                    runForBranches
+                                } = job;
+                                const computedJobId = job.type + (job.id ? ('-' + job.id) : '');
 
-                                let errorOccurred = false;
-                                let attemptInstance = 0;
-                                let attemptDuration = 0;
-                                let totalDuration = 0;
-                                try {
-                                    for (let i = 0; i < attempts; i++) {
-                                        try {
-                                            attemptInstance = i + 1;
-                                            const t1 = Date.now();
-                                            await $(execaConfig)`npm ${approach}`;
-                                            const t2 = Date.now();
-                                            attemptDuration = t2 - t1;
-                                            totalDuration += attemptDuration;
-                                            break;
-                                        } catch (error) {
-                                            if (i === attempts - 1) {
-                                                throw error;
-                                            }
-                                        }
+                                if (runOnceForProject) {
+                                    if (branch !== '{project-level-jobs}') {
+                                        return;
                                     }
-                                    forJob_statusData.worked = 'yes';
-                                } catch (err) {
-                                    errorOccurred = true;
-                                    forJob_statusData.worked = 'no';
+                                } else {
+                                    if (branch === '{project-level-jobs}') {
+                                        return;
+                                    }
                                 }
 
-                                if (errorOccurred) {
-                                    logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red', message: `✗ npm ${approach} failed in ${attemptInstance} attempt(s)` }]);
-                                } else  {
+                                if (
+                                    runForBranches &&
+                                    !runForBranches.includes(branch)
+                                ) {
+                                    return;
+                                }
+
+                                logger.log(`        ➤ Job: ${type}`);
+                                // logAndStore(forBranch.reports, 'log', `        ➤ Job: ${type}`);
+
+                                const forJob = {
+                                    time: Date.now(),
+                                    type,
+                                    id: computedJobId,
+                                    reports: []
+                                };
+
+                                const forJob_statusData = {};
+                                const forJob_status = {
+                                    status: forJob_statusData
+                                };
+
+                                forBranch_status[computedJobId] = forJob_status;
+
+                                const forJobData_status_lastExecution = forBranch_status_lastExecution?.jobs[computedJobId]?.status;
+
+                                if (type === 'gitBranchesCount') {
+                                    const { options } = job;
+
+                                    const t1 = Date.now();
+                                    await $(execaConfig)`git remote prune origin`;
+                                    const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
+                                    const t2 = Date.now();
                                     let durationToAppend = '';
                                     if (reportDuration) {
-                                        if (attemptInstance > 1) {
-                                            durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms / ${totalDuration}ms)` }];
-                                        } else {
-                                            durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms)` }];
+                                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                                    }
+                                    const branchesCount = parseInt(branches.stdout.trim());
+                                    forJob_statusData.branchesCount = branchesCount;
+
+                                    const lastExecutionBranchesCount = forJobData_status_lastExecution?.branchesCount;
+
+                                    const whatToDo = getLogOrWarnOrSkipWarnOrError({
+                                        reportContents_job,
+                                        limit: options.limit,
+                                        deltaDirection: 'increment',
+                                        count: branchesCount,
+                                        lastExecutionCount: lastExecutionBranchesCount
+                                    });
+
+                                    if (whatToDo === 'error') {
+                                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Branches count: ${branchesCount} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
+                                    } else if (whatToDo === 'warn') {
+                                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
+                                    } else if (whatToDo === 'skipWarn') {
+                                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Branches count: ${branchesCount} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
+                                    } else {
+                                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Branches count: ${branchesCount}`,                                                              ...durationToAppend]);
+                                    }
+                                } else if (type === 'nodeOutdated') {
+                                    const t1 = Date.now();
+
+                                    const { options } = job;
+
+                                    let versionToEnsure;
+                                    if (options.approach === '.nvmrc') {
+                                        // Read the .nvmrc file
+                                        const nvmrcContents = fs.readFileSync('.nvmrc', 'utf8');
+                                        versionToEnsure = nvmrcContents.trim();
+                                        if (versionToEnsure.indexOf('v') !== 0) {
+                                            versionToEnsure = 'v' + versionToEnsure;
                                         }
                                     }
-                                    logAndStore(forJob.reports, 'log', [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` npm ${approach}`, ...durationToAppend]);
+
+                                    const taggedVersions = await tagNodeVersions();
+
+                                    let range;
+
+                                    if (options.ensure === 'latest') {
+                                        range = taggedVersions.latest;
+                                    } else if (options.ensure === 'stable') {
+                                        range = taggedVersions.stable;
+                                    } else if (options.ensure === 'stable~1') {
+                                        range = taggedVersions.stableTilde1;
+                                    } else { // options.ensure === 'stable~2'
+                                        range = taggedVersions.stableTilde2;
+                                    }
+
+                                    if (options.ensureStrategy === 'major') {
+                                        range = '>=' + semver.major(range) + '.x.x';
+                                    } else if (options.ensureStrategy === 'minor') {
+                                        range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.x';
+                                    } else { // options.ensureStrategy === 'patch'
+                                        range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.' + semver.patch(range);
+                                    }
+
+                                    const flagSatisfied = semver.satisfies(versionToEnsure, range);
+
+                                    const t2 = Date.now();
+                                    let durationToAppend = '';
+                                    if (reportDuration) {
+                                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                                    }
+
+                                    forJob_statusData.outdated = flagSatisfied ? null : versionToEnsure;
+
+                                    let whatToDo;
+
+                                    if (flagSatisfied) {
+                                        whatToDo = 'log';
+                                    } else {
+                                        if (options.failureStatus === 'warn') {
+                                            whatToDo = 'warn';
+                                        } else {
+                                            whatToDo = 'error';
+                                        }
+                                    }
+
+                                    if (whatToDo === 'log') {
+                                        logAndStore(forJob.reports, 'log',   [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Node version: ${versionToEnsure} is satisfied by ${range}`, ...durationToAppend]);
+                                    } else if (whatToDo === 'warn') {
+                                        logAndStore(forJob.reports, 'warn',  [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
+                                    } else { // whatToDo === 'error'
+                                        logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red',    message: `✗ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
+                                    }
+                                } else if (type === 'npmOutdated') {
+                                    const { options } = job;
+                                    const { approach } = options;
+
+                                    const t1 = Date.now();
+                                    const outdated = await $`npx --yes npm-check-updates --jsonUpgraded`;
+                                    const t2 = Date.now();
+                                    let durationToAppend = '';
+                                    if (reportDuration) {
+                                        durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
+                                    }
+                                    const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
+                                    let outdatedJson = Object.entries(outdatedJsonObj);
+
+                                    switch (approach) {
+                                        case 'skipExactVersion': {
+                                            // eslint-disable-next-line no-unused-vars
+                                            outdatedJson = outdatedJson.filter(([packageName, packageVersion]) => {
+                                                if (packageVersion.charAt(0) === '^' || packageVersion.charAt(0) === '~') {
+                                                    return true;
+                                                } else {
+                                                    return false;
+                                                }
+                                            });
+                                            break;
+                                        }
+                                        case 'all':
+                                        default: {
+                                            // do nothing
+                                        }
+                                    }
+
+                                    forJob_statusData.outdated = outdatedJson;
+
+                                    const lastExecutionOutdated = forJobData_status_lastExecution?.outdated;
+
+                                    const whatToDo = getLogOrWarnOrSkipWarnOrError({
+                                        reportContents_job,
+                                        limit: options.limit,
+                                        deltaDirection: 'increment',
+                                        count: outdatedJson.length,
+                                        lastExecutionCount: lastExecutionOutdated?.length
+                                    });
+
+                                    if (whatToDo === 'error') {
+                                        logAndStore(forJob.reports, 'error',    [{ indentLevel: 3 }, { color: 'red',    message:       `✗ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.error} (error limit)` },                    ...durationToAppend]);
+                                    } else if (whatToDo === 'warn') {
+                                        logAndStore(forJob.reports, 'warn',     [{ indentLevel: 3 }, { color: 'yellow', message:       `⚠️ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit)` },                   ...durationToAppend]);
+                                    } else if (whatToDo === 'skipWarn') {
+                                        logAndStore(forJob.reports, 'skipWarn', [{ indentLevel: 3 },                                   `✔ Outdated npm packages count: ${outdatedJson.length} >= ${options.limit.warn} (warning limit - skipped threshold)`, ...durationToAppend]);
+                                    } else {
+                                        logAndStore(forJob.reports, 'log',      [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Outdated npm packages count: ${outdatedJson.length}`,                                                              ...durationToAppend]);
+                                    }
+                                } else if (type === 'npmInstall') {
+                                    const { options } = job;
+                                    const {
+                                        approach,
+                                        attempts
+                                    } = options;
+
+                                    let errorOccurred = false;
+                                    let attemptInstance = 0;
+                                    let attemptDuration = 0;
+                                    let totalDuration = 0;
+                                    try {
+                                        for (let i = 0; i < attempts; i++) {
+                                            try {
+                                                attemptInstance = i + 1;
+                                                const t1 = Date.now();
+                                                await $(execaConfig)`npm ${approach}`;
+                                                const t2 = Date.now();
+                                                attemptDuration = t2 - t1;
+                                                totalDuration += attemptDuration;
+                                                break;
+                                            } catch (error) {
+                                                if (i === attempts - 1) {
+                                                    throw error;
+                                                }
+                                            }
+                                        }
+                                        forJob_statusData.worked = 'yes';
+                                    } catch (err) {
+                                        errorOccurred = true;
+                                        forJob_statusData.worked = 'no';
+                                    }
+
+                                    if (errorOccurred) {
+                                        logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red', message: `✗ npm ${approach} failed in ${attemptInstance} attempt(s)` }]);
+                                    } else  {
+                                        let durationToAppend = '';
+                                        if (reportDuration) {
+                                            if (attemptInstance > 1) {
+                                                durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms / ${totalDuration}ms)` }];
+                                            } else {
+                                                durationToAppend = [' ', { dim: true, message: `(${attemptDuration}ms)` }];
+                                            }
+                                        }
+                                        logAndStore(forJob.reports, 'log', [{ indentLevel: 3 }, { color: 'green', message: '✔' }, ` npm ${approach}`, ...durationToAppend]);
+                                    }
                                 }
-                            }
 
-                            forJob.duration = Date.now() - forJob.time;
-                            forJob_status.duration = forJob.duration;
+                                forJob.duration = Date.now() - forJob.time;
+                                forJob_status.duration = forJob.duration;
 
-                            forBranch.reports.push(forJob);
-                        });
-                    }
+                                forBranch.reports.push(forJob);
+                            });
+                        }
 
-                    forBranch.duration = Date.now() - forBranch.time;
+                        forBranch.duration = Date.now() - forBranch.time;
 
-                    forProject.reports.push(forBranch);
+                        forProject.reports.push(forBranch);
 
-                    if (reportSend_branch !== 'no') {
-                        await submitReports({
-                            reportContents_project,
-                            reportContents_branch,
-                            reportContents_job,
+                        if (reportSend_branch !== 'no') {
+                            await submitReports({
+                                reportContents_project,
+                                reportContents_branch,
+                                reportContents_job,
 
-                            reportSend_runner,
-                            reportSend_project,
-                            reportSend_branch,
+                                reportSend_runner,
+                                reportSend_project,
+                                reportSend_branch,
 
-                            reporters,
+                                reporters,
 
-                            runAndReport,
+                                runAndReport,
 
-                            // generateFor: 'branch',
-                            forRunner,
-                            forProject,
-                            forBranch
-                        });
-                    }
-                });
-            }
+                                // generateFor: 'branch',
+                                forRunner,
+                                forProject,
+                                forBranch
+                            });
+                        }
+                    });
+                }
 
-            forProject.duration = Date.now() - forProject.time;
+                forProject.duration = Date.now() - forProject.time;
 
-            forRunner.reports.push(forProject);
+                forRunner.reports.push(forProject);
 
-            if (source === 'cron') {
-                process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
-                await $(execaConfig)`touch ${id}.json`;
+                if (source === 'cron') {
+                    process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
+                    await $(execaConfig)`touch ${id}.json`;
 
-                const newStatusJson = structuredClone(oldStatusJson);
-                newStatusJson.push(forProject_status);
-                fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
-            }
+                    const newStatusJson = structuredClone(oldStatusJson);
+                    newStatusJson.push(forProject_status);
+                    fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
+                }
 
-            if (reportSend_project !== 'no') {
-                await submitReports({
-                    reportContents_project,
-                    reportContents_branch,
-                    reportContents_job,
+                if (reportSend_project !== 'no') {
+                    await submitReports({
+                        reportContents_project,
+                        reportContents_branch,
+                        reportContents_job,
 
-                    reportSend_runner,
-                    reportSend_project,
-                    reportSend_branch,
+                        reportSend_runner,
+                        reportSend_project,
+                        reportSend_branch,
 
-                    reporters,
+                        reporters,
 
-                    runAndReport,
+                        runAndReport,
 
-                    // generateFor: 'project',
-                    forRunner,
-                    forProject
-                });
-            }
-        });
-    }
+                        // generateFor: 'project',
+                        forRunner,
+                        forProject
+                    });
+                }
+            });
+        }
 
-    if (reportSend_runner !== 'no') {
-        await submitReports({
-            reportContents_project,
-            reportContents_branch,
-            reportContents_job,
+        if (reportSend_runner !== 'no') {
+            await submitReports({
+                reportContents_project,
+                reportContents_branch,
+                reportContents_job,
 
-            reportSend_runner,
-            reportSend_project,
-            reportSend_branch,
+                reportSend_runner,
+                reportSend_project,
+                reportSend_branch,
 
-            reporters,
+                reporters,
 
-            runAndReport,
+                runAndReport,
 
-            // generateFor: 'runner',
-            forRunner
-        });
+                // generateFor: 'runner',
+                forRunner
+            });
+        }
+
+        return [null];
+    } catch (e) {
+        return [e];
     }
 };
 
@@ -769,14 +777,68 @@ const validateReportSendOption = function (reportSend, fallbackValue) {
     return value;
 };
 
-const runner = async (taskConfig, configPath) => {
+const setupGitRepo = async function ({
+    parentDirectory,
+    config,
+    configPath
+}) {
+    try {
+        await $(execaConfig)`mkdir -p ${parentDirectory}`;
+        process.chdir(parentDirectory);
+        const cwd = process.cwd();
+        pinoLogger.debug(`Current working directory: ${cwd}`);
+
+        for (const project of config.projects) {
+            const projectId = project.id;
+            const projectUrl = project.url;
+
+            const configInDirectory = path.dirname(configPath);
+            const urlOrPath = (
+                projectUrl.indexOf('git@')   === 0 ||
+                projectUrl.indexOf('git:')   === 0 ||
+                projectUrl.indexOf('ftp:')   === 0 ||
+                projectUrl.indexOf('ftps:')  === 0 ||
+                projectUrl.indexOf('https:') === 0
+            ) ?
+                projectUrl :
+                path.resolve(configInDirectory, projectUrl);
+
+            const targetDirectoryPath = path.resolve(parentDirectory, projectId);
+            if (fs.existsSync(targetDirectoryPath)) {
+                pinoLogger.warn(`Note: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${projectId}".`);
+            } else {
+                pinoLogger.info(`Cloning project: ${projectId}`);
+                await $(execaConfig)`git clone ${urlOrPath} ${projectId}`;
+                pinoLogger.info(`Cloned project: ${projectId}`);
+            }
+            process.chdir(parentDirectory);
+            process.chdir(projectId);
+
+            const cwd = process.cwd();
+            pinoLogger.info(`The Git project is available at: ${cwd}`);
+
+            await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
+
+            const { branches } = project;
+            const branch = branches[0];
+            await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
+
+            await $(execaConfig)`git reset --hard origin/${branch}`;
+        }
+        return [null];
+    } catch (e) {
+        return [e];
+    }
+};
+
+const runner = async ({ taskConfig, configPath, purpose }) => {
     const config = taskConfig;
 
     const addAtLocation = config.addAtLocation || 'git-projects-cache';
 
-    const runAndReport           = config.runAndReport         || {};
+    const runAndReport           = config.runAndReport           || {};
 
-    // const crons               = runAndReport.crons          || [];
+    // const crons               = runAndReport.recommendedCrons || [];
 
     const reportContents_project = validateReportContentsOption(runAndReport.reportContents?.project, 'onWarn+');
     const reportContents_branch  = validateReportContentsOption(runAndReport.reportContents?.branch,  'onWarn+');
@@ -836,54 +898,24 @@ const runner = async (taskConfig, configPath) => {
 
         const parentDirectory = `/var/tmp/revisitor/${addAtLocation}`;
 
-        // Just a code block
-        {
-            await $(execaConfig)`mkdir -p ${parentDirectory}`;
-            process.chdir(parentDirectory);
-            const cwd = process.cwd();
-            pinoLogger.debug(`Current working directory: ${cwd}`);
-
-            for (const project of config.projects) {
-                const projectId = project.id;
-                const projectUrl = project.url;
-
-                const configInDirectory = path.dirname(configPath);
-                const urlOrPath = (
-                    projectUrl.indexOf('git@')   === 0 ||
-                    projectUrl.indexOf('git:')   === 0 ||
-                    projectUrl.indexOf('ftp:')   === 0 ||
-                    projectUrl.indexOf('ftps:')  === 0 ||
-                    projectUrl.indexOf('https:') === 0
-                ) ?
-                    projectUrl :
-                    path.resolve(configInDirectory, projectUrl);
-
-                const targetDirectoryPath = path.resolve(parentDirectory, projectId);
-                if (fs.existsSync(targetDirectoryPath)) {
-                    pinoLogger.warn(`Note: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${projectId}".`);
-                } else {
-                    pinoLogger.info(`Cloning project: ${projectId}`);
-                    await $(execaConfig)`git clone ${urlOrPath} ${projectId}`;
-                    pinoLogger.info(`Cloned project: ${projectId}`);
-                }
-                process.chdir(parentDirectory);
-                process.chdir(projectId);
-
-                const cwd = process.cwd();
-                pinoLogger.info(`The Git project is available at: ${cwd}`);
-
-                await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
-
-                const { branches } = project;
-                const branch = branches[0];
-                await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
-
-                await $(execaConfig)`git reset --hard origin/${branch}`;
-            }
+        if (purpose === 'execute') {
+            const [errSetupGitRepo] = await setupGitRepo({
+                parentDirectory,
+                config,
+                configPath
+            });
+            pinoLogger.error('setupGitRepo error:');
+            pinoLogger.error(errSetupGitRepo);
+            pinoLogger.error({
+                parentDirectory,
+                config,
+                configPath
+            });
+            notifier.error('Error in Git setup', `Could not setup Git repositories for ${configPath}`);
         }
 
         const callMainExecution = async function ({ source }) {
-            await mainExecution({
+            const [err, response] = await mainExecution({
                 $,
                 execaWithRetry,
 
@@ -907,14 +939,10 @@ const runner = async (taskConfig, configPath) => {
                 runAndReport,
                 projects: config.projects
             });
+            return [err, response];
         };
 
-        // Just a code block
-        {
-            await callMainExecution({
-                source: 'command'
-            });
-        }
+        return [null, callMainExecution];
     }
 };
 

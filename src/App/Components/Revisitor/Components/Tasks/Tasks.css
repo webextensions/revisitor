@@ -1,0 +1,20 @@
+.TasksTable th {
+    padding-bottom: 10px;
+}
+
+.TasksTable td {
+    text-align: center;
+}
+
+.TasksTable thead tr {
+    box-shadow: 0px 1px 0px #ccc;
+}
+
+.TasksTable tbody tr {
+    box-shadow: 0px 1px 0px #eee;
+}
+
+.TasksTable tbody tr td:first-child {
+    padding-top: 15px;
+    padding-bottom: 15px;
+}

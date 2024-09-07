@@ -61,7 +61,7 @@
         "react-dom": "^18.3.1",
         "prop-types": "^15.8.1",
 
-        "@tanstack/react-query": "^5.54.1",
+        "@tanstack/react-query": "^5.55.0",
         "react-toastify": "^10.0.5",
 
         // Material UI
@@ -79,6 +79,10 @@
 
         // Database
         "@seald-io/nedb": "^4.0.4",
+
+        // Cron
+        "cron-parser": "^4.9.0",
+        "cronstrue": "^2.50.0",
 
         // Miscellaneous
         "execa": "^9.3.1",
@@ -131,6 +135,7 @@
         "local-ip-addresses-and-hostnames": "=0.2.0",
 
         // Miscellaneous
+        "@webextensions/simpleid": "=0.0.4",
         "concurrently": "^8.2.2",
         "del": "^7.1.0",
         "handlebars": "^4.7.8",

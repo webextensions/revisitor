@@ -4,6 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { toast } from '../../../../../ImportedComponents/react-toastify.js';
 
+import Input from '@mui/material/Input/index.js';
+import Button from '@mui/material/Button/index.js';
+import AddIcon from '@mui/icons-material/Add.js';
+
 import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
 
 import { createTask } from '../../../../dal.js';
@@ -20,7 +24,10 @@ const AddConfig = function () {
         mutate
     } = useMutation({
         mutationFn: function () {
-            const p = createTask({ configPath });
+            const p = createTask({
+                configPath: configPath.trim(),
+                enableRecommendedCrons: true // TODO: HARDCODING: Provide a UI option to toggle this
+            });
             (async function () {
                 const [err] = await p;
                 if (err) {
@@ -43,13 +50,24 @@ const AddConfig = function () {
     });
 
     return (
-        <div className={styles.AddConfig}>
-            <div>
-                <input
+        <div
+            className={styles.AddConfig}
+            style={{ display: 'flex' }}
+        >
+            <div style={{ flex: 1 }}>
+                <Input
                     type="text"
-                    placeholder="Provide the full path of the configuration file"
-                    style={{ width: '80vw' }}
+                    placeholder="Add new configuration file by providing its full path"
                     value={configPath}
+                    spellCheck={false}
+                    style={{
+                        marginTop: 10,
+                        paddingLeft: 21,
+                        width: '100%',
+                        fontFamily: 'monospace',
+                        fontSize: 11,
+                        letterSpacing: 'unset'
+                    }}
                     onChange={function (e) {
                         setConfigPath(e.target.value);
                     }}
@@ -65,15 +83,17 @@ const AddConfig = function () {
                 />
             </div>
             <div>
-                <button
-                    type="button"
+                <Button
+                    variant="contained"
+                    startIcon={<AddIcon />}
                     disabled={isLoading || !configPath}
+                    style={{ marginLeft: 20 }}
                     onClick={function () {
                         mutate();
                     }}
                 >
                     {isLoading ? 'Adding...' : 'Add'}
-                </button>
+                </Button>
             </div>
         </div>
     );

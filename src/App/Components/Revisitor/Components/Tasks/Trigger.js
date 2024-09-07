@@ -3,7 +3,11 @@ import propTypes from 'prop-types';
 
 import { useMutation } from '@tanstack/react-query';
 
+import Button from '@mui/material/Button/index.js';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow.js';
+
 import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
+import { LoadingErrorLoaded } from '../../../../../base_modules/LoadingErrorLoaded/LoadingErrorLoaded.js';
 
 import { triggerTask } from '../../../../dal.js';
 
@@ -25,18 +29,29 @@ const Trigger = ({ taskId }) => {
     return (
         <div>
             <div>
-                <button
+                <Button
+                    variant="contained"
+                    startIcon={<PlayArrowIcon />}
+                    size="small"
                     disabled={isPending}
                     onClick={async () => {
                         await mutate();
                     }}
                 >
                     {isPending ? 'Running...' : 'Trigger'}
-                </button>
+                </Button>
             </div>
             <div>
-                {status === 'success' && 'Completed'}
-                {status === 'error' && 'Error'}
+                <LoadingErrorLoaded
+                    fn="useMutation"
+                    status={status}
+                    style={{
+                        marginTop: 3,
+                        marginBottom: 5,
+                        display: 'flex',
+                        justifyContent: 'center'
+                    }}
+                />
             </div>
         </div>
     );

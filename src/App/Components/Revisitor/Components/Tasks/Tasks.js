@@ -3,7 +3,14 @@ import propTypes from 'prop-types';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+import Button from '@mui/material/Button/index.js';
+import DeleteIcon from '@mui/icons-material/Delete.js';
+
+import { CopyIcon } from '@webextensions/react/components/CopyIcon/CopyIcon.js';
+
 import { Loading } from '../../../../../ImportedComponents/Loading/Loading.js';
+
+import { RelativeTime } from '../../../../../base_modules/RelativeTime/RelativeTime.js';
 
 import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
 import {
@@ -13,7 +20,9 @@ import {
 
 import { AddConfig } from '../AddConfig/AddConfig.js';
 import { Trigger } from './Trigger.js';
-import { CronToggle } from './CronToggle.js';
+import { Crons } from './Crons.js';
+
+import * as styles from './Tasks.css';
 
 const DeleteTask = ({ taskId, onDelete }) => {
     const {
@@ -31,16 +40,25 @@ const DeleteTask = ({ taskId, onDelete }) => {
     if (status === 'success') {
         return <div>Deleted</div>;
     }
+
     return (
-        <button
+        <Button
+            color="error"
+            variant="outlined"
+            startIcon={<DeleteIcon />}
+            size="small"
             disabled={isPending}
             onClick={async () => {
-                await mutate();
-                onDelete();
+                // eslint-disable-next-line no-alert
+                const confirmed = window.confirm('Are you sure you want to delete this task?');
+                if (confirmed) {
+                    await mutate();
+                    onDelete();
+                }
             }}
         >
             {isPending ? 'Deleting...' : 'Delete'}
-        </button>
+        </Button>
     );
 };
 DeleteTask.propTypes = {
@@ -61,13 +79,29 @@ const Task = ({ task }) => {
             }}
             className={deleted ? 'no-pointer-events' : undefined}
         >
-            <td>{task.configPath}</td>
-            <td>{task.createdAt}</td>
+            <td style={{ textAlign: 'left' }}>
+                <div style={{ display: 'flex' }}>
+                    <div>
+                        <CopyIcon data={task.configPath} />
+                    </div>
+                    <div style={{ marginLeft: 5, fontFamily: 'monospace', fontSize: 11 }}>
+                        {task.configPath}
+                    </div>
+                </div>
+            </td>
+            <td>
+                <span title={String(new Date(task.createdAt))}>
+                    <RelativeTime
+                        type="past"
+                        time={(new Date(task.createdAt)).getTime()}
+                    />
+                </span>
+            </td>
             <td>
                 <Trigger taskId={task._id} />
             </td>
             <td>
-                <CronToggle taskId={task._id} hasCrons={task.hasCrons} />
+                <Crons taskId={task._id} crons={task.crons} />
             </td>
             <td>
                 <DeleteTask taskId={task._id} onDelete={handleDelete} />
@@ -89,14 +123,26 @@ const TasksTable = ({ tasks }) => {
     }
 
     return (
-        <table>
+        <table
+            className={styles.TasksTable}
+            style={{ width: '100%' }}
+        >
             <thead>
                 <tr>
-                    <th>Config Path</th>
-                    <th>Created At</th>
+                    <th>Configuration Path</th>
+                    <th>Added</th>
                     <th>Trigger</th>
                     <th>Cron</th>
-                    <th>Actions</th>
+                    <th
+                        style={{
+                            // To ensure that the contents under this column don't have any padding, so, the right side
+                            // of the "Delete" buttons inside the table are aligned with the right side of the "Add"
+                            // button below the table
+                            width: 1
+                        }}
+                    >
+                        Actions
+                    </th>
                 </tr>
             </thead>
             <tbody>
@@ -148,7 +194,11 @@ const TasksList = ({ refreshedAt }) => {
                 } else if (status === 'error') {
                     return 'Error';
                 } else {
-                    return <Loading type="line-scale" />;
+                    return (
+                        <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <Loading type="line-scale" />
+                        </div>
+                    );
                 }
             })()}
         </div>
@@ -161,9 +211,11 @@ TasksList.propTypes = {
 const Tasks = function ({ refreshedAt }) {
     return (
         <div>
-            <TasksList refreshedAt={refreshedAt} />
-
             <div style={{ marginTop: 20 }}>
+                <TasksList refreshedAt={refreshedAt} />
+            </div>
+
+            <div style={{ marginTop: 35 }}>
                 <AddConfig />
             </div>
         </div>
