@@ -82,14 +82,8 @@ const ensureDatabaseSetup = async function () {
     }
 };
 
-const setupCrons = async function () {
+const setupCrons = async function (entries) {
     try {
-        const entries = (
-            await db
-                .find({})
-                .sort({ createdAt: 1 })
-        );
-
         for (const entry of entries) {
             const { configPath } = entry;
             const config = require(configPath);
@@ -149,6 +143,26 @@ const setupCrons = async function () {
     }
 };
 
+const setupAllCrons = async function () {
+    try {
+        const entries = (
+            await db
+                .find({})
+                .sort({ createdAt: 1 })
+        );
+        const [err] = await setupCrons(entries);
+        if (err) {
+            throw err;
+        }
+        return [null];
+    } catch (err) {
+        console.error(err);
+        console.error('Error in Crons Setup - Could not setup crons');
+        notifier.error('Error in Crons Setup', 'Could not setup crons');
+        return [err];
+    }
+};
+
 const setupTasksRoutes = async function () {
     const [err] = await ensureDatabaseSetup();
     if (err) {
@@ -157,7 +171,7 @@ const setupTasksRoutes = async function () {
         throw err;
     }
 
-    const [errSetupCrons] = await setupCrons();
+    const [errSetupCrons] = await setupAllCrons();
 
     if (errSetupCrons) {
         console.error(err);
