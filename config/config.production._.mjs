@@ -20,7 +20,7 @@ const configForThisMode = {
             url: {
                 // host: 'example.com',
                 http: {
-                    port: 8000, // Ensure that the port 8000 is "forwarded" to port 80 in the production server
+                    port: 2766, // Ensure that the port 2766 is "forwarded" to port 80 in the production server
                     redirectToHttps: true
                 },
                 https: {

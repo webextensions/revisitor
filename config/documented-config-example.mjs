@@ -35,7 +35,7 @@ const configForThisMode = {
                     enabled: false,                                 // false / true
                     port: 80,                                       // 80 / <port-number>
                                                                     // Note:
-                                                                    //     For production, you may wish to run the application on another port, say 8000 and map that port to 80
+                                                                    //     For production, you may wish to run the application on another port, say 2766 and map that port to 80
                                                                     //     Please understand how HSTS works in case you wish to run your application on non-standard ports
                     redirectToHttps: false                          // false / true
                 },
@@ -54,7 +54,7 @@ const configForThisMode = {
                     // },
                     port: 443                                                   // 443 / <port-number>
                                                                                 // Note:
-                                                                                //     For production, you may wish to run the application on another port, say 4430 and map that port to 443
+                                                                                //     For production, you may wish to run the application on another port, say 27660 and map that port to 443
                                                                                 //     Please understand how HSTS works in case you wish to run your application on non-standard ports
                 },
 

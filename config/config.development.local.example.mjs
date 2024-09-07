@@ -18,12 +18,12 @@ const configForThisMode = {
                 // host: 'example.com',
                 http: {
                     enabled: true,
-                    port: 8000,
+                    port: 2766, // 2766 represents the string "cron" in the phone keypad
                     redirectToHttps: false
                 },
                 https: {
                     enabled: false,
-                    port: 4430
+                    port: 27660
                 }
             }
         }

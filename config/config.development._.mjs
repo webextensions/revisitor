@@ -11,7 +11,7 @@ const configForThisMode = {
             publicDirectory,
             url: {
                 http: {
-                    port: 8000,
+                    port: 2766,
                     redirectToHttps: false
                 },
                 https: {
