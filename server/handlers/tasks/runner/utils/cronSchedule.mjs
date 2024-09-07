@@ -6,7 +6,9 @@ const schedules = {};
 let latestScheduleId = 0;
 
 const clearCronSchedule = function (scheduleId) {
-    schedules[scheduleId] = false;
+    if (schedules[scheduleId]) {
+        schedules[scheduleId] = false;
+    }
 };
 
 const setCronSchedule = function ({
@@ -64,6 +66,7 @@ const setCronSchedule = function ({
             await timeout(syncerGap);
 
             if (!schedules[scheduleId]) {
+                delete schedules[scheduleId];
                 break;
             }
 

@@ -19,7 +19,10 @@ import {
 import notifier from '../../../utils/notifications/notifications.mjs';
 
 import { pinoLogger } from './runner/utils/pinoLogger.mjs';
-import { setCronSchedule } from './runner/utils/cronSchedule.mjs';
+import {
+    setCronSchedule,
+    clearCronSchedule
+} from './runner/utils/cronSchedule.mjs';
 
 import { runner } from './runner/runner.mjs';
 
@@ -31,6 +34,15 @@ const db = new Datastore({
     filename: path.resolve(__dirname, '../../../app-data/tasks.db'),
     autoload: true
 });
+
+const clearCronSchedulesForTask = function (taskRecord) {
+    for (const cron in taskRecord.crons) {
+        const scheduleId = global.scheduledJobs[taskRecord.configPath]?.[cron];
+        clearCronSchedule(scheduleId);
+        delete global.scheduledJobs[taskRecord.configPath]?.[cron];
+    }
+    delete global.scheduledJobs[taskRecord.configPath];
+};
 
 const createTask = async function ({ configPath, enableRecommendedCrons }) {
     try {
@@ -50,6 +62,15 @@ const createTask = async function ({ configPath, enableRecommendedCrons }) {
             createdAt: new Date()
         };
         const newDoc = await db.insertAsync(taskToInsert);
+
+        const [errSetupCrons] = await setupCrons([newDoc]);
+        if (errSetupCrons) {
+            console.error('Error leading to data inconsistency - The configuration was inserted but crons could not be setup');
+            notifier.error('Error leading to data inconsistency', 'The configuration was inserted but crons could not be setup');
+            console.error(errSetupCrons);
+            return [errSetupCrons];
+        }
+
         return [null, newDoc];
     } catch (err) {
         return [err];
@@ -254,6 +275,16 @@ const setupTasksRoutes = async function () {
 
                     // eslint-disable-next-line no-unused-vars
                     const numUpdated = await db.updateAsync({ _id: taskId }, taskCloned, {});
+
+                    clearCronSchedulesForTask(task);
+                    const [errSetupCrons] = await setupCrons([taskCloned]);
+                    if (errSetupCrons) {
+                        console.error('Error leading to data inconsistency - The configuration was inserted but crons could not be setup');
+                        notifier.error('Error leading to data inconsistency', 'The configuration was inserted but crons could not be setup');
+                        console.error(errSetupCrons);
+                        return sendErrorResponse(res, 500, 'Internal Server Error');
+                    }
+
                     return sendSuccessResponse(res, taskCloned);
                 } catch (err) {
                     console.error(err);
@@ -305,6 +336,10 @@ const setupTasksRoutes = async function () {
             .post('/delete/:taskId', async function (req, res) {
                 try {
                     const { taskId } = req.params;
+
+                    const recordAboutToBeDeleted = await db.findOneAsync({ _id: taskId });
+                    clearCronSchedulesForTask(recordAboutToBeDeleted);
+
                     const numRemoved = await db.removeAsync({ _id: taskId }, { multi: false });
                     return sendSuccessResponse(res, numRemoved);
                 } catch (err) {
