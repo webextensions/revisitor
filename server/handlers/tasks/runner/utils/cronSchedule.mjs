@@ -9,7 +9,7 @@ const clearCronSchedule = function (scheduleId) {
     schedules[scheduleId] = false;
 };
 
-const setCronSchedule = async function ({
+const setCronSchedule = function ({
     cronStr,
     fn,
     allowBreaking = false,
@@ -28,8 +28,8 @@ const setCronSchedule = async function ({
     //                 passed, the function fn will be called once at the time of waking up.
     //      * Attempt to keep the millisecond time of execution for each cycle as close to the first instance of execution
 
-    const scheduleId = latestScheduleId;
     latestScheduleId++;
+    const scheduleId = latestScheduleId;
 
     schedules[scheduleId] = true;
 
