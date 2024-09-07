@@ -135,7 +135,6 @@
         "local-ip-addresses-and-hostnames": "=0.2.0",
 
         // Miscellaneous
-        "@webextensions/simpleid": "=0.0.4",
         "concurrently": "^8.2.2",
         "del": "^7.1.0",
         "handlebars": "^4.7.8",

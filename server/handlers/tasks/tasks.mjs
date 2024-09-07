@@ -16,12 +16,10 @@ import {
     sendSuccessResponseAsAccepted
 } from '../../utils/express-utils/express-utils.mjs';
 
-import { simpleid } from '@webextensions/simpleid';
-
 import notifier from '../../../utils/notifications/notifications.mjs';
 
 import { pinoLogger } from './runner/utils/pinoLogger.mjs';
-import { cronScheduler } from './runner/utils/cronScheduler.mjs';
+import { setCronSchedule } from './runner/utils/cronSchedule.mjs';
 
 import { runner } from './runner/runner.mjs';
 
@@ -124,10 +122,7 @@ const setupCrons = async function () {
             global.scheduledJobs = global.scheduledJobs || {};
 
             for (const cron in enabledCrons) {
-                const id = simpleid();
-                global.scheduledJobs[id] = true;
-                cronScheduler({
-                    id,
+                const scheduleId = setCronSchedule({
                     cronStr: cron,
                     fn: async function () {
                         const [err] = await doCallMainExecution({
@@ -139,6 +134,8 @@ const setupCrons = async function () {
                         }
                     }
                 });
+                global.scheduledJobs[configPath] = global.scheduledJobs[configPath] || {};
+                global.scheduledJobs[configPath][cron] = scheduleId;
 
                 pinoLogger.info(`Scheduled cron: ${cronstrue.toString(cron, { verbose: true })} for tasks provided at ${configPath}`);
             }
