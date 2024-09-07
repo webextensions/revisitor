@@ -904,14 +904,16 @@ const runner = async ({ taskConfig, configPath, purpose }) => {
                 config,
                 configPath
             });
-            pinoLogger.error('setupGitRepo error:');
-            pinoLogger.error(errSetupGitRepo);
-            pinoLogger.error({
-                parentDirectory,
-                config,
-                configPath
-            });
-            notifier.error('Error in Git setup', `Could not setup Git repositories for ${configPath}`);
+            if (errSetupGitRepo) {
+                pinoLogger.error('setupGitRepo error:');
+                pinoLogger.error(errSetupGitRepo);
+                pinoLogger.error({
+                    parentDirectory,
+                    config,
+                    configPath
+                });
+                notifier.error('Error in Git setup', `Could not setup Git repositories for ${configPath}`);
+            }
         }
 
         const callMainExecution = async function ({ source }) {
