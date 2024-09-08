@@ -1,8 +1,9 @@
 # Revisitor
 
-## Setup
+## Autorun on System Startup
 
-In Ubuntu, launch `Startup Applications` program.
+### Ubuntu
+Launch `Startup Applications` program.
 
 Click on "Add" button. A dialog window titled "Add Startup Program" would open.
 
