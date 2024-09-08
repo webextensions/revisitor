@@ -1,7 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import propTypes from 'prop-types';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+import ArrowRightIcon from '@mui/icons-material/ArrowRight.js';
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown.js';
 
 import { CopyIcon } from '@webextensions/react/components/CopyIcon/CopyIcon.js';
 
@@ -17,49 +20,77 @@ import { Trigger } from './Trigger/Trigger.js';
 import { Crons } from './Crons/Crons.js';
 import { DeleteTask } from './DeleteTask/DeleteTask.js';
 
+import { ManageTask } from './ManageTask/ManageTask.js';
+
 import * as styles from './Tasks.css';
 
 const Task = ({ task }) => {
+    const [showDetailedView, setShowDetailedView] = useState(false);
+
     const [deleted, setDeleted] = useState(false);
     const handleDelete = () => {
         setDeleted(true);
     };
     return (
-        <tr
-            style={{
-                height: 24,
-                opacity: deleted ? 0.5 : undefined
-            }}
-            className={deleted ? 'no-pointer-events' : undefined}
-        >
-            <td style={{ textAlign: 'left' }}>
-                <div style={{ display: 'flex' }}>
+        <Fragment>
+            <tr
+                style={{
+                    height: 24,
+                    opacity: deleted ? 0.5 : undefined,
+                    boxShadow: showDetailedView ? 'unset' : undefined
+                }}
+                className={deleted ? 'no-pointer-events' : undefined}
+            >
+                <td style={{ textAlign: 'left' }}>
+                    {
+                        showDetailedView ?
+                            <ArrowDropDownIcon style={{ cursor: 'pointer' }} onClick={() => setShowDetailedView(false)} /> :
+                            <ArrowRightIcon style={{ cursor: 'pointer' }} onClick={() => setShowDetailedView(true)} />
+                    }
+                </td>
+                <td style={{ textAlign: 'left' }}>
+                    <div style={{ display: 'flex' }}>
+                        <div>
+                            <CopyIcon data={task.configPath} />
+                        </div>
+                        <div style={{ marginLeft: 5, fontFamily: 'monospace', fontSize: 11 }}>
+                            {task.configPath}
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span title={String(new Date(task.createdAt))}>
+                        <RelativeTime
+                            type="past"
+                            time={(new Date(task.createdAt)).getTime()}
+                        />
+                    </span>
+                </td>
+                <td>
+                    <Trigger taskId={task._id} />
+                </td>
+                <td>
+                    <Crons taskId={task._id} crons={task.crons} />
+                </td>
+                <td>
                     <div>
-                        <CopyIcon data={task.configPath} />
+                        <DeleteTask taskId={task._id} onDelete={handleDelete} />
                     </div>
-                    <div style={{ marginLeft: 5, fontFamily: 'monospace', fontSize: 11 }}>
-                        {task.configPath}
-                    </div>
-                </div>
-            </td>
-            <td>
-                <span title={String(new Date(task.createdAt))}>
-                    <RelativeTime
-                        type="past"
-                        time={(new Date(task.createdAt)).getTime()}
-                    />
-                </span>
-            </td>
-            <td>
-                <Trigger taskId={task._id} />
-            </td>
-            <td>
-                <Crons taskId={task._id} crons={task.crons} />
-            </td>
-            <td>
-                <DeleteTask taskId={task._id} onDelete={handleDelete} />
-            </td>
-        </tr>
+                </td>
+            </tr>
+            {
+                showDetailedView &&
+                <tr>
+                    <td></td>
+                    <td colSpan={5} style={{ height: 10, backgroundColor: '#f7f7f7', textAlign: 'left' }}>
+                        <ManageTask
+                            taskId={task._id}
+                            crons={task.crons}
+                        />
+                    </td>
+                </tr>
+            }
+        </Fragment>
     );
 };
 Task.propTypes = {
@@ -82,6 +113,7 @@ const TasksTable = ({ tasks }) => {
         >
             <thead>
                 <tr>
+                    <th />
                     <th>Configuration Path</th>
                     <th>Added</th>
                     <th>Trigger</th>

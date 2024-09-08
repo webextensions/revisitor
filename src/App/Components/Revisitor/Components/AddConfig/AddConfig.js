@@ -49,6 +49,10 @@ const AddConfig = function () {
         }
     });
 
+    const handleSubmit = function () {
+        mutate();
+    };
+
     return (
         <div
             className={styles.AddConfig}
@@ -72,12 +76,11 @@ const AddConfig = function () {
                         setConfigPath(e.target.value);
                     }}
                     onKeyPress={function (e) {
-                        if (
-                            e.key === 'Enter' &&
-                            !isLoading &&
-                            configPath
-                        ) {
-                            mutate();
+                        if (isLoading || !(configPath.trim())) {
+                            return;
+                        }
+                        if (e.key === 'Enter') {
+                            handleSubmit();
                         }
                     }}
                 />
@@ -87,10 +90,10 @@ const AddConfig = function () {
                     variant="contained"
                     startIcon={<AddIcon />}
                     size="small"
-                    disabled={isLoading || !configPath}
+                    disabled={isLoading || !(configPath.trim())}
                     style={{ marginLeft: 20 }}
                     onClick={function () {
-                        mutate();
+                        handleSubmit();
                     }}
                 >
                     {isLoading ? 'Adding...' : 'Add'}
