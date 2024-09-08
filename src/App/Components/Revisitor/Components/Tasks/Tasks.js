@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import propTypes from 'prop-types';
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-
-import Button from '@mui/material/Button/index.js';
-import DeleteIcon from '@mui/icons-material/Delete.js';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { CopyIcon } from '@webextensions/react/components/CopyIcon/CopyIcon.js';
 
@@ -13,58 +10,14 @@ import { Loading } from '../../../../../ImportedComponents/Loading/Loading.js';
 import { RelativeTime } from '../../../../../base_modules/RelativeTime/RelativeTime.js';
 
 import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
-import {
-    listTasks,
-    deleteTask
-} from '../../../../dal.js';
+import { listTasks } from '../../../../dal.js';
 
 import { AddConfig } from '../AddConfig/AddConfig.js';
 import { Trigger } from './Trigger.js';
 import { Crons } from './Crons.js';
+import { DeleteTask } from './DeleteTask/DeleteTask.js';
 
 import * as styles from './Tasks.css';
-
-const DeleteTask = ({ taskId, onDelete }) => {
-    const {
-        mutate,
-        status,
-        isPending
-    } = useMutation({
-        mutationFn: () => {
-            const p = deleteTask({ taskId });
-            const querifiedP = safeArrayPromiseToErrorPromise(p);
-            return querifiedP;
-        }
-    });
-
-    if (status === 'success') {
-        return <div>Deleted</div>;
-    }
-
-    return (
-        <Button
-            color="error"
-            variant="outlined"
-            startIcon={<DeleteIcon />}
-            size="small"
-            disabled={isPending}
-            onClick={async () => {
-                // eslint-disable-next-line no-alert
-                const confirmed = window.confirm('Are you sure you want to delete this task?');
-                if (confirmed) {
-                    await mutate();
-                    onDelete();
-                }
-            }}
-        >
-            {isPending ? 'Deleting...' : 'Delete'}
-        </Button>
-    );
-};
-DeleteTask.propTypes = {
-    taskId: propTypes.string,
-    onDelete: propTypes.func
-};
 
 const Task = ({ task }) => {
     const [deleted, setDeleted] = useState(false);
