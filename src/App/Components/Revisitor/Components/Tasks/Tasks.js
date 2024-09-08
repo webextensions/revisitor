@@ -85,7 +85,7 @@ const TasksTable = ({ tasks }) => {
                     <th>Configuration Path</th>
                     <th>Added</th>
                     <th>Trigger</th>
-                    <th>Cron</th>
+                    <th>Crons</th>
                     <th
                         style={{
                             // To ensure that the contents under this column don't have any padding, so, the right side
