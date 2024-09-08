@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import propTypes from 'prop-types';
 
 import Switch from '@mui/material/Switch/index.js';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import cronstrue from 'cronstrue';
 
@@ -12,7 +12,7 @@ import { patchTask } from '../../../../../dal.js';
 import { safeArrayPromiseToErrorPromise } from '../../../../../utils/safeArrayPromiseToErrorPromise.js';
 
 const Crons = function ({ taskId, crons }) {
-    const [cronsOb, setCronsOb] = useState(crons);
+    const queryClient = useQueryClient();
 
     const {
         mutate,
@@ -29,7 +29,16 @@ const Crons = function ({ taskId, crons }) {
 
         // eslint-disable-next-line no-unused-vars
         onSuccess: function (data, newCronsOb, context) {
-            setCronsOb(newCronsOb);
+            queryClient.setQueryData(['tasksList'], (oldData) => {
+                const newData = structuredClone(oldData);
+                newData.forEach(function (task) {
+                    if (task._id === taskId) {
+                        task.crons = newCronsOb;
+                    }
+                });
+
+                return newData;
+            });
         },
 
         // eslint-disable-next-line no-unused-vars
@@ -39,7 +48,7 @@ const Crons = function ({ taskId, crons }) {
     });
 
     const enableDisableCron = function (cron, enable) {
-        const newCronsOb = structuredClone(cronsOb);
+        const newCronsOb = structuredClone(crons);
         newCronsOb[cron] = enable;
         mutate(newCronsOb); // Note: This is an async operation
     };
@@ -62,7 +71,7 @@ const Crons = function ({ taskId, crons }) {
                         }}
                     >
                         <Switch
-                            checked={cronsOb[cron]}
+                            checked={crons[cron]}
                             size="small"
 
                             // Note: Not using `disabled` prop and rather using CSS pointer-events for disabling it to
