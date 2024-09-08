@@ -21,7 +21,7 @@ const publicDirectory = 'public-development-local';
 
 const configForThisMode = {
     application: {
-        name: 'Web Application Template'
+        name: 'Revisitor'
     },
     server: {
         // workers: 1,                                              // 1 / <number-of-workers>
@@ -118,9 +118,9 @@ const configForThisMode = {
         }
     },
     // db: {
-    //     path: path.join(__dirname, '..', 'database', 'web-application-template'),
+    //     path: path.join(__dirname, '..', 'database', 'revisitor'),
     //     port: 27017,
-    //     name: 'web-application-template'
+    //     name: 'revisitor'
     // },
     webpack: {
         // mode: 'development',                                             // 'development' / 'production'

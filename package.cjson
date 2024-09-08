@@ -1,17 +1,17 @@
 {
-    "name": "web-application-template",
+    "name": "revisitor",
     "version": "1.0.0",
-    "description": "A web application project template, based on: Node.js, Babel, ESLint, Express, React, Webpack, etc",
+    "description": "A task runner for your git projects to execute jobs at regular intervals and generate reports / alerts / notifications / mails",
     "author": "Priyank Parashar",
     "license": "MIT",
 
-    "homepage": "https://github.com/webextensions/web-application-template#readme",
+    "homepage": "https://github.com/webextensions/revisitor#readme",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/webextensions/web-application-template.git"
+        "url": "git+https://github.com/webextensions/revisitor.git"
     },
     "bugs": {
-        "url": "https://github.com/webextensions/web-application-template/issues"
+        "url": "https://github.com/webextensions/revisitor/issues"
     },
 
     // "type": "module",

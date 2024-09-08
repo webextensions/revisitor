@@ -2,7 +2,7 @@
 
 const configForThisMode = {
     application: {
-        name: 'Web Application Template'
+        name: 'Revisitor'
     },
     server: {
         verbose: true,

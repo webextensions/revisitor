@@ -1,7 +1,7 @@
 {
     "author": "Priyank Parashar",
     "bugs": {
-        "url": "https://github.com/webextensions/web-application-template/issues"
+        "url": "https://github.com/webextensions/revisitor/issues"
     },
     "dependencies": {
         "@emotion/react": "^11.13.3",
@@ -49,7 +49,7 @@
         "webpack-dev-middleware": "^7.4.2",
         "webpack-hot-middleware": "^2.26.1"
     },
-    "description": "A web application project template, based on: Node.js, Babel, ESLint, Express, React, Webpack, etc",
+    "description": "A task runner for your git projects to execute jobs at regular intervals and generate reports / alerts / notifications / mails",
     "devDependencies": {
         "@babel/cli": "^7.25.6",
         "@babel/core": "^7.25.2",
@@ -84,13 +84,13 @@
         "shelljs": "^0.8.5",
         "webpack-cli": "^5.1.4"
     },
-    "homepage": "https://github.com/webextensions/web-application-template#readme",
+    "homepage": "https://github.com/webextensions/revisitor#readme",
     "license": "MIT",
     "main": "server/application.mjs",
-    "name": "web-application-template",
+    "name": "revisitor",
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/webextensions/web-application-template.git"
+        "url": "git+https://github.com/webextensions/revisitor.git"
     },
     "scripts": {
         "all-is-well": "./scripts/health-checks/all-is-well.sh",
