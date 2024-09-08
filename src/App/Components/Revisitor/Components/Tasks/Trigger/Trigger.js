@@ -6,10 +6,10 @@ import { useMutation } from '@tanstack/react-query';
 import Button from '@mui/material/Button/index.js';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow.js';
 
-import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
-import { LoadingErrorLoaded } from '../../../../../base_modules/LoadingErrorLoaded/LoadingErrorLoaded.js';
+import { safeArrayPromiseToErrorPromise } from '../../../../../utils/safeArrayPromiseToErrorPromise.js';
+import { LoadingErrorLoaded } from '../../../../../../base_modules/LoadingErrorLoaded/LoadingErrorLoaded.js';
 
-import { triggerTask } from '../../../../dal.js';
+import { triggerTask } from '../../../../../dal.js';
 
 const Trigger = ({ taskId }) => {
     const {

@@ -13,8 +13,8 @@ import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromi
 import { listTasks } from '../../../../dal.js';
 
 import { AddConfig } from '../AddConfig/AddConfig.js';
-import { Trigger } from './Trigger.js';
-import { Crons } from './Crons.js';
+import { Trigger } from './Trigger/Trigger.js';
+import { Crons } from './Crons/Crons.js';
 import { DeleteTask } from './DeleteTask/DeleteTask.js';
 
 import * as styles from './Tasks.css';
