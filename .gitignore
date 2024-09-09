@@ -10,7 +10,11 @@
 ## Generic ignored files
 
 # Logs
-logs
+
+# logs # Commented out to allow that directory
+
+nohup.out
+
 *.log
 npm-debug.log*
 yarn-debug.log*

@@ -31,7 +31,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
 
 const db = new Datastore({
-    filename: path.resolve(__dirname, '../../../app-data/tasks.db'),
+    filename: path.resolve(__dirname, '../../../app-data/database/tasks.db'),
     autoload: true
 });
 
