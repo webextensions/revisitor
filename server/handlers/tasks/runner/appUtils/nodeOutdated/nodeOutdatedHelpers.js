@@ -8,12 +8,15 @@ const sortVersions = function (arrVersions) {
 };
 
 const tagNodeVersions = async function () {
-    // eslint-disable-next-line import/no-unresolved
-    const got = (await import('got')).default;
+    const { execa } = (await import('execa'));
 
-    const nodeJsReleasesResponse = await got.get('https://nodejs.org/dist/index.json');
+    // Somehow, the network call via 'got' / 'ky' libraries are erroring out with 'ETIMEDOUT' error. The error is a bit
+    // intermittent, but it happens almost all the time (error occurs in around 90% of the attempts). Attempted to
+    // provide some headers, like: 'accept', 'connection', 'host', 'user-agent' etc, but, the error still occurred.
+    const url = 'https://nodejs.org/dist/index.json';
+    const nodeJsReleasesResponse = await execa('curl', [url]);
 
-    const json = JSON.parse(nodeJsReleasesResponse.body);
+    const json = JSON.parse(nodeJsReleasesResponse.stdout);
     const arrVersions = json.map((entry) => {
         return entry.version;
     });
