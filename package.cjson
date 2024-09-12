@@ -67,8 +67,7 @@
         // Material UI
         "@mui/material": "^6.1.0",
         "@mui/icons-material": "^6.1.0",
-        "@emotion/react": "^11.13.3",
-        "@emotion/styled": "^11.13.0",
+        "@mui/material-pigment-css": "^6.1.0",
 
         // React components
         "@webextensions/react": "=0.1.1",

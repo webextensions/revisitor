@@ -4,10 +4,9 @@
         "url": "https://github.com/webextensions/revisitor/issues"
     },
     "dependencies": {
-        "@emotion/react": "^11.13.3",
-        "@emotion/styled": "^11.13.0",
         "@mui/icons-material": "^6.1.0",
         "@mui/material": "^6.1.0",
+        "@mui/material-pigment-css": "^6.1.0",
         "@pinojs/json-colorizer": "^4.0.0",
         "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
         "@seald-io/nedb": "^4.0.4",
