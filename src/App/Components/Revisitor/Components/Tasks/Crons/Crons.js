@@ -4,8 +4,8 @@ import propTypes from 'prop-types';
 import Switch from '@mui/material/Switch/index.js';
 import Button from '@mui/material/Button/index.js';
 import Input from '@mui/material/Input/index.js';
-import DeleteIcon from '@mui/icons-material/Delete.js';
-import AddIcon from '@mui/icons-material/Add.js';
+import DeleteIcon from '@mui/icons-material/Delete'; // eslint-disable-line node/file-extension-in-import
+import AddIcon from '@mui/icons-material/Add'; // eslint-disable-line node/file-extension-in-import
 
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 

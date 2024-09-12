@@ -4,7 +4,7 @@ import propTypes from 'prop-types';
 import { useMutation } from '@tanstack/react-query';
 
 import Button from '@mui/material/Button/index.js';
-import DeleteIcon from '@mui/icons-material/Delete.js';
+import DeleteIcon from '@mui/icons-material/Delete'; // eslint-disable-line node/file-extension-in-import
 
 import { safeArrayPromiseToErrorPromise } from '../../../../../utils/safeArrayPromiseToErrorPromise.js';
 

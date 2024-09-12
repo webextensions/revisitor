@@ -6,7 +6,7 @@ import { toast } from '../../../../../ImportedComponents/react-toastify.js';
 
 import Input from '@mui/material/Input/index.js';
 import Button from '@mui/material/Button/index.js';
-import AddIcon from '@mui/icons-material/Add.js';
+import AddIcon from '@mui/icons-material/Add'; // eslint-disable-line node/file-extension-in-import
 
 import { safeArrayPromiseToErrorPromise } from '../../../../utils/safeArrayPromiseToErrorPromise.js';
 

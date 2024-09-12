@@ -4,7 +4,7 @@ import propTypes from 'prop-types';
 import { useMutation } from '@tanstack/react-query';
 
 import Button from '@mui/material/Button/index.js';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow.js';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'; // eslint-disable-line node/file-extension-in-import
 
 import { safeArrayPromiseToErrorPromise } from '../../../../../utils/safeArrayPromiseToErrorPromise.js';
 import { LoadingErrorLoaded } from '../../../../../../base_modules/LoadingErrorLoaded/LoadingErrorLoaded.js';

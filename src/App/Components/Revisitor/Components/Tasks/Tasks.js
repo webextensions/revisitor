@@ -3,8 +3,8 @@ import propTypes from 'prop-types';
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import ArrowRightIcon from '@mui/icons-material/ArrowRight.js';
-import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown.js';
+import ArrowRightIcon from '@mui/icons-material/ArrowRight'; // eslint-disable-line node/file-extension-in-import
+import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown'; // eslint-disable-line node/file-extension-in-import
 
 import { CopyIcon } from '@webextensions/react/components/CopyIcon/CopyIcon.js';
 
