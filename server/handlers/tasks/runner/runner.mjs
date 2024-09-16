@@ -50,6 +50,13 @@ const execaConfig = (function () {
 
     return config;
 })();
+const execaConfigWithCwd = function (cwd) {
+    const config = {
+        ...execaConfig,
+        cwd
+    };
+    return config;
+};
 const execaWithRetryConfig = {
     attempts: 3,
     retryStrategy: {
@@ -325,6 +332,8 @@ const mainExecution = async function ({
     execaWithRetry,
 
     config,
+    configPath,
+    parentDirectory,
 
     source,
 
@@ -375,11 +384,12 @@ const mainExecution = async function ({
                     branches: {}
                 };
 
-                process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
+                const projectParentPath = `/var/tmp/revisitor/${addAtLocation}`;
+                const projectJsonFilePath = path.resolve(projectParentPath, `${id}.json`);
 
                 // eslint-disable-next-line no-unused-vars
                 const [errFileRead, oldExecutionStatsFileContents] = tryCatchSafe(() => {
-                    const output = fs.readFileSync(`${id}.json`, 'utf8');
+                    const output = fs.readFileSync(projectJsonFilePath, 'utf8');
                     return output;
                 }, '[]');
 
@@ -390,11 +400,23 @@ const mainExecution = async function ({
                 }, []);
                 const forProject_status_lastExecution = oldStatusJson[oldStatusJson.length - 1];
 
-                process.chdir(id);
-                const cwd = process.cwd();
-                pinoLogger.debug(`Current working directory: ${cwd}`);
+                try {
+                    // Ensure that the directory exists and is a Git repository
+                    await $(execaConfigWithCwd(projectParentPath))`git -C ${id} rev-parse`;
+                } catch (e) {
+                    const [errSetupGitRepo] = await setupGitRepo({
+                        config,
+                        configPath,
+                        parentDirectory
+                    });
+                    if (errSetupGitRepo) {
+                        throw new Error('Error in setting up Git repository', { cause: errSetupGitRepo });
+                    }
+                }
 
-                await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
+                const projectPath = `/var/tmp/revisitor/${addAtLocation}/${id}`;
+
+                await execaWithRetry('git', ['fetch'], execaConfigWithCwd(projectPath), execaWithRetryConfig);
 
                 for (const branch of project.branches) {
                     await reportIfError.run(async () => {
@@ -415,8 +437,8 @@ const mainExecution = async function ({
                         };
 
                         if (branch !== '{project-level-jobs}') {
-                            await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
-                            await $(execaConfig)`git reset --hard origin/${branch}`;
+                            await $(execaConfigWithCwd(projectPath))`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
+                            await $(execaConfigWithCwd(projectPath))`git reset --hard origin/${branch}`;
                         }
 
                         for (const job of project.jobs) {
@@ -468,8 +490,8 @@ const mainExecution = async function ({
                                     const { options } = job;
 
                                     const t1 = Date.now();
-                                    await $(execaConfig)`git remote prune origin`;
-                                    const branches = await $`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
+                                    await $(execaConfigWithCwd(projectPath))`git remote prune origin`;
+                                    const branches = await $(execaConfigWithCwd(projectPath))`git branch -r`.pipe`grep -v ${'origin/HEAD'}`.pipe`wc -l`;
                                     const t2 = Date.now();
                                     let durationToAppend = '';
                                     if (reportDuration) {
@@ -568,13 +590,24 @@ const mainExecution = async function ({
                                     const { approach } = options;
 
                                     const t1 = Date.now();
-                                    const outdated = await $`npx --yes npm-check-updates --jsonUpgraded`;
+                                    const outdated = await execaWithRetry('npx', ['--yes', 'npm-check-updates', '--jsonUpgraded'], execaConfigWithCwd(projectPath), execaWithRetryConfig);
                                     const t2 = Date.now();
                                     let durationToAppend = '';
                                     if (reportDuration) {
                                         durationToAppend = [' ', { dim: true, message: `(${t2 - t1}ms)` }];
                                     }
-                                    const outdatedJsonObj = JSON.parse(outdated.stdout.trim());
+
+                                    let outdatedJsonObj;
+                                    try {
+                                        outdatedJsonObj = JSON.parse(outdated.stdout.trim());
+                                    } catch (err) {
+                                        console.log('Error in parsing stdout as JSON from `npm-check-updates`:');
+                                        console.log(`stdout length: ${outdated.stdout} characters`);
+                                        console.log(`stdout: ${outdated.stdout}`);
+                                        console.log(`stderr length: ${outdated.stderr} characters`);
+                                        console.log(`stderr: ${outdated.stderr}`);
+                                        throw err;
+                                    }
                                     let outdatedJson = Object.entries(outdatedJsonObj);
 
                                     switch (approach) {
@@ -632,7 +665,7 @@ const mainExecution = async function ({
                                             try {
                                                 attemptInstance = i + 1;
                                                 const t1 = Date.now();
-                                                await $(execaConfig)`npm ${approach}`;
+                                                await $(execaConfigWithCwd(projectPath))`npm ${approach}`;
                                                 const t2 = Date.now();
                                                 attemptDuration = t2 - t1;
                                                 totalDuration += attemptDuration;
@@ -703,8 +736,7 @@ const mainExecution = async function ({
                 forRunner.reports.push(forProject);
 
                 if (source === 'cron') {
-                    process.chdir(`/var/tmp/revisitor/${addAtLocation}`);
-                    await $(execaConfig)`touch ${id}.json`;
+                    await $(execaConfigWithCwd(`/var/tmp/revisitor/${addAtLocation}`))`touch ${id}.json`;
 
                     const newStatusJson = structuredClone(oldStatusJson);
                     newStatusJson.push(forProject_status);
@@ -783,10 +815,10 @@ const setupGitRepo = async function ({
     configPath
 }) {
     try {
-        await $(execaConfig)`mkdir -p ${parentDirectory}`;
-        process.chdir(parentDirectory);
-        const cwd = process.cwd();
-        pinoLogger.debug(`Current working directory: ${cwd}`);
+        // Somehow, if CWD is not an existing directory (eg: It was deleted at some point of time after it was set),
+        // then the following `mkdir -p <path>` command fails with ENOENT error. So, using '/' as the CWD to ensure that
+        // the current directory is a valid one.
+        await $(execaConfigWithCwd('/'))`mkdir -p ${parentDirectory}`;
 
         for (const project of config.projects) {
             const projectId = project.id;
@@ -808,22 +840,22 @@ const setupGitRepo = async function ({
                 pinoLogger.warn(`Note: Contents already exist at ${targetDirectoryPath}. Skipping cloning for the project "${projectId}".`);
             } else {
                 pinoLogger.info(`Cloning project: ${projectId}`);
-                await $(execaConfig)`git clone ${urlOrPath} ${projectId}`;
+
+                await $(execaConfigWithCwd(parentDirectory))`git clone ${urlOrPath} ${projectId}`;
+
                 pinoLogger.info(`Cloned project: ${projectId}`);
             }
-            process.chdir(parentDirectory);
-            process.chdir(projectId);
 
-            const cwd = process.cwd();
-            pinoLogger.info(`The Git project is available at: ${cwd}`);
+            pinoLogger.info(`The Git project is available at: ${targetDirectoryPath}`);
 
-            await execaWithRetry('git', ['fetch'], execaConfig, execaWithRetryConfig);
+            await execaWithRetry('git', ['fetch'], execaConfigWithCwd(targetDirectoryPath), execaWithRetryConfig);
 
             const { branches } = project;
             const branch = branches[0];
-            await $(execaConfig)`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
 
-            await $(execaConfig)`git reset --hard origin/${branch}`;
+            await $(execaConfigWithCwd(targetDirectoryPath))`git -c core.hooksPath=/dev/null checkout ${branch}`; // https://stackoverflow.com/questions/35447092/git-checkout-without-running-post-checkout-hook/61485071#61485071
+
+            await $(execaConfigWithCwd(targetDirectoryPath))`git reset --hard origin/${branch}`;
         }
         return [null];
     } catch (e) {
@@ -900,17 +932,17 @@ const runner = async ({ taskConfig, configPath, purpose }) => {
 
         if (purpose === 'execute') {
             const [errSetupGitRepo] = await setupGitRepo({
-                parentDirectory,
                 config,
-                configPath
+                configPath,
+                parentDirectory
             });
             if (errSetupGitRepo) {
                 pinoLogger.error('setupGitRepo error:');
                 pinoLogger.error(errSetupGitRepo);
                 pinoLogger.error({
-                    parentDirectory,
                     config,
-                    configPath
+                    configPath,
+                    parentDirectory
                 });
                 notifier.error('Error in Git setup', `Could not setup Git repositories for ${configPath}`);
             }
@@ -922,6 +954,8 @@ const runner = async ({ taskConfig, configPath, purpose }) => {
                 execaWithRetry,
 
                 config,
+                configPath,
+                parentDirectory,
 
                 source,
 
