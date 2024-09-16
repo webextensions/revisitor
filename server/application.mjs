@@ -23,6 +23,8 @@ import compression from 'compression';
 import helmet from 'helmet';
 import favicon from 'serve-favicon';
 
+import getPort, { portNumbers } from 'get-port';
+
 import extend from 'extend';
 import _ from 'lodash';
 import chalk from 'chalk';
@@ -481,7 +483,13 @@ const application = {
                     httpsServerObject = registerServer('https', useHttpsPortNumber, httpsConfig); // eslint-disable-line no-unused-vars
                 }
                 if (useHttp) {
-                    httpServerObject = registerServer('http', useHttpPortNumber);
+                    let computedHttpPortNumber = useHttpPortNumber;
+                    if (process.env.HTTP_PORT_DYNAMIC === 'yes') {
+                        computedHttpPortNumber = await getPort({
+                            port: portNumbers(computedHttpPortNumber, 65535)
+                        });
+                    }
+                    httpServerObject = registerServer('http', computedHttpPortNumber);
                 }
 
                 if (_nonProductionDevToolsConfig.useLiveCssEditor) {

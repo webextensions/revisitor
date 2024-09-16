@@ -28,6 +28,7 @@
         "dotenv": "^16.4.5",
 
         // Server - Express
+        "get-port": "^7.1.0",
         "express": "^4.21.0",
 
         // Server - Express middleware
@@ -171,6 +172,7 @@
         "server:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk server/server.mjs    --config config/config.production.local.mjs",
 
         "server:development:local":                                "nodemon            server/server.mjs -- --config config/config.development.local.mjs",
+        "server:development:local:http-port-dynamic": "HTTP_PORT_DYNAMIC=yes nodemon   server/server.mjs -- --config config/config.development.local.mjs",
         "server:development:local:inspect-brk":                    "node --inspect-brk server/server.mjs    --config config/config.development.local.mjs",
         "server:development:local:use-hmr":            "USE_HMR=yes nodemon            server/server.mjs -- --config config/config.development.local.mjs",
 
