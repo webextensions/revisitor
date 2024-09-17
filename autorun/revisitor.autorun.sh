@@ -7,20 +7,30 @@ set -x
 
 pwd
 
+set +x
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+set -x
 
 sleep 5
 
-nvm install
+set +x
+
+echo "$ nvm install"
+        nvm install
+
 
 # Though `nvm install` internally calls `nvm use` in general, but `nvm install` may fail if internet connection is not
 # available (and `nvm use` is not called in that case)
-nvm use
+echo "$ nvm use"
+        nvm use
+
+set -x
 
 npm install --prefer-offline
 
 npx --prefer-offline --yes node-notifier-cli notify -t 'Revisitor - Git Access' -m 'You may be prompted to unlock the private key.'
+
 sleep 5
 
 
