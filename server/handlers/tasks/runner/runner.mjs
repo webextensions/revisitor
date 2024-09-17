@@ -385,6 +385,7 @@ const mainExecution = async function ({
                 };
 
                 const projectParentPath = `/var/tmp/revisitor/${addAtLocation}`;
+                const projectPath =       `/var/tmp/revisitor/${addAtLocation}/${id}`;
                 const projectJsonFilePath = path.resolve(projectParentPath, `${id}.json`);
 
                 // eslint-disable-next-line no-unused-vars
@@ -413,8 +414,6 @@ const mainExecution = async function ({
                         throw new Error('Error in setting up Git repository', { cause: errSetupGitRepo });
                     }
                 }
-
-                const projectPath = `/var/tmp/revisitor/${addAtLocation}/${id}`;
 
                 await execaWithRetry('git', ['fetch'], execaConfigWithCwd(projectPath), execaWithRetryConfig);
 
@@ -526,8 +525,8 @@ const mainExecution = async function ({
 
                                     let versionToEnsure;
                                     if (options.approach === '.nvmrc') {
-                                        // Read the .nvmrc file
-                                        const nvmrcContents = fs.readFileSync('.nvmrc', 'utf8');
+                                        const nvmrcPath = path.resolve(projectPath, '.nvmrc');
+                                        const nvmrcContents = fs.readFileSync(nvmrcPath, 'utf8'); // Read the .nvmrc file
                                         versionToEnsure = nvmrcContents.trim();
                                         if (versionToEnsure.indexOf('v') !== 0) {
                                             versionToEnsure = 'v' + versionToEnsure;
@@ -736,11 +735,11 @@ const mainExecution = async function ({
                 forRunner.reports.push(forProject);
 
                 if (source === 'cron') {
-                    await $(execaConfigWithCwd(`/var/tmp/revisitor/${addAtLocation}`))`touch ${id}.json`;
+                    await $(execaConfigWithCwd(projectParentPath))`touch ${projectJsonFilePath}`;
 
                     const newStatusJson = structuredClone(oldStatusJson);
                     newStatusJson.push(forProject_status);
-                    fs.writeFileSync(`${id}.json`, JSON.stringify(newStatusJson, null, '\t') + '\n');
+                    fs.writeFileSync(projectJsonFilePath, JSON.stringify(newStatusJson, null, '\t') + '\n');
                 }
 
                 if (reportSend_project !== 'no') {
