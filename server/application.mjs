@@ -61,7 +61,9 @@ const routeSetup = async function (exp) {
                 logger.log('TODO: The access to this route needs to be limited to administrators only');
                 next();
             })
+            .get('/help', (await import('./handlers/admin/expressHandlers/expressHandlers.mjs')).expressHandlers(exp))
             .get('/info', (await import('./handlers/admin/info/info.mjs')).info)
+            .get('/kill', (await import('./handlers/admin/kill/kill.mjs')).kill)
             .use('/users', express.Router()
                 .get('/', function (req, res) {
                     res.send('TODO: Serve the /GET request for /admin/users');
@@ -82,9 +84,7 @@ const routeSetup = async function (exp) {
                 res.send(`TODO: Create a user with ID ${reqBody.username} (if available)`);
             })
         )
-        .use('/tasks', await (await import('./handlers/tasks/tasks.mjs')).setupTasksRoutes())
-        .get('/kill', (await import('./handlers/generic/kill/kill.mjs')).kill)
-        .get('/help', (await import('./handlers/expressHandlers/expressHandlers.mjs')).expressHandlers(exp));
+        .use('/tasks', await (await import('./handlers/tasks/tasks.mjs')).setupTasksRoutes());
 
     setTimeout(function () {
         // Setting up this router after a delay so that live-css server router is able to attach itself before it
