@@ -3,6 +3,10 @@
 cd "$(dirname "$0")" # Change directory to the folder containing this file
 cd ..                # Change directory to the root folder of the project
 
+set -x
+
+pwd
+
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
