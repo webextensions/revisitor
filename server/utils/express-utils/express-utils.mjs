@@ -18,13 +18,25 @@ const sendErrorResponse = function (res, statusCode, errorMessage, output) {
     );
 };
 
-const sendSuccessResponse = function (res, output) {
+const sendSuccessResponse = function (
+    res,
+    output,
+    options = { beautify: false }
+) {
     const responseToSend = {
         status: 'success'
     };
 
     if (output !== undefined) {
         responseToSend.output = output;
+    }
+
+    if (options?.beautify) {
+        return (
+            res
+                .header('Content-Type', 'application/json')
+                .send(JSON.stringify(responseToSend, null, '\t'))
+        );
     }
 
     return res.send(responseToSend);
