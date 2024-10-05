@@ -87,6 +87,8 @@
         // Miscellaneous
         "execa": "^9.4.0",
 
+        "semver": "^7.6.3",
+
         "helpmate": "^1.7.1",
 
         "@sendgrid/mail": "^8.1.3",
