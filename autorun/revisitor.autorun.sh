@@ -16,8 +16,8 @@ sleep 5
 
 set +x
 
-echo "$ nvm install"
-        nvm install
+echo "$ nvm install -b"
+        nvm install -b
 
 
 # Though `nvm install` internally calls `nvm use` in general, but `nvm install` may fail if internet connection is not
