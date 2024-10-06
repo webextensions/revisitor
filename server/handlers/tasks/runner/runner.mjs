@@ -555,7 +555,7 @@ const mainExecution = async function ({
                                         range = '>=' + semver.major(range) + '.' + semver.minor(range) + '.' + semver.patch(range);
                                     }
 
-                                    const flagSatisfied = semver.satisfies(versionToEnsure, range);
+                                    const flagSatisfied = semver.satisfies(semver.coerce(versionToEnsure).version, range);
 
                                     const t2 = Date.now();
                                     let durationToAppend = '';
