@@ -85,6 +85,8 @@
         "cronstrue": "^2.50.0",
 
         // Miscellaneous
+        "clear-module": "^4.1.2",
+
         "execa": "^9.4.0",
 
         "semver": "^7.6.3",

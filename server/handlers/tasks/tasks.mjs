@@ -7,6 +7,8 @@ import { createRequire } from 'node:module';
 
 import express from 'express';
 
+import clearModule from 'clear-module';
+
 import cronstrue from 'cronstrue';
 
 import Datastore from '@seald-io/nedb';
@@ -46,6 +48,7 @@ const clearCronSchedulesForTask = function (taskRecord) {
 
 const createTask = async function ({ configPath, enableRecommendedCrons }) {
     try {
+        clearModule(configPath);
         const config = require(configPath);
 
         const crons = {};
@@ -107,6 +110,7 @@ const setupCrons = async function (entries) {
     try {
         for (const entry of entries) {
             const { configPath } = entry;
+            clearModule(configPath);
             const config = require(configPath);
 
             const cronsToCheck = entry.crons || {};
@@ -206,6 +210,7 @@ const setupTasksRoutes = async function () {
 
         for (const entry of entries) {
             const { configPath } = entry;
+            clearModule(configPath);
             const config = require(configPath);
 
             const [err, doCallMainExecution] = await runner({
@@ -305,6 +310,7 @@ const setupTasksRoutes = async function () {
 
                     const { configPath } = task;
 
+                    clearModule(configPath);
                     const config = require(configPath);
 
                     const fn = async function () {
