@@ -578,11 +578,11 @@ const mainExecution = async function ({
                                     }
 
                                     if (whatToDo === 'log') {
-                                        logAndStore(forJob.reports, 'log',   [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Node version: ${versionToEnsure} is satisfied by ${range}`, ...durationToAppend]);
+                                        logAndStore(forJob.reports, 'log',   [{ indentLevel: 3 }, { color: 'green',  message: '✔' }, ` Node version: ${versionToEnsure} satisifies ${range}`, ...durationToAppend]);
                                     } else if (whatToDo === 'warn') {
-                                        logAndStore(forJob.reports, 'warn',  [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
+                                        logAndStore(forJob.reports, 'warn',  [{ indentLevel: 3 }, { color: 'yellow', message: `⚠️ Node version: ${versionToEnsure} does not satisfy ${range}` }, ...durationToAppend]);
                                     } else { // whatToDo === 'error'
-                                        logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red',    message: `✗ Node version: ${versionToEnsure} is not satisfied by ${range}` }, ...durationToAppend]);
+                                        logAndStore(forJob.reports, 'error', [{ indentLevel: 3 }, { color: 'red',    message: `✗ Node version: ${versionToEnsure} does not satisfy ${range}` }, ...durationToAppend]);
                                     }
                                 } else if (type === 'npmOutdated') {
                                     const { options } = job;
