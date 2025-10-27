@@ -201,7 +201,7 @@ const setupTasksRoutes = async function () {
     if (errSetupCrons) {
         console.error(err);
         notifier.error('Error in Crons Setup', 'Could not setup crons');
-        throw err;
+        // throw err; // Commenting it out temporarily to avoid an error from crashing the server at launch time
     }
 
     /*
