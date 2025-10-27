@@ -32,6 +32,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const require = createRequire(import.meta.url);
 
+const simpleRequire = function (path) {
+    let result = require(path);
+    if (result.__esModule) {
+        result = result.default;
+    }
+    return result;
+};
+
 const db = new Datastore({
     filename: path.resolve(__dirname, '../../../app-data/database/tasks.db'),
     autoload: true
@@ -49,7 +57,7 @@ const clearCronSchedulesForTask = function (taskRecord) {
 const createTask = async function ({ configPath, enableRecommendedCrons }) {
     try {
         clearModule(configPath);
-        const config = require(configPath);
+        const config = simpleRequire(configPath);
 
         const crons = {};
 
@@ -111,7 +119,7 @@ const setupCrons = async function (entries) {
         for (const entry of entries) {
             const { configPath } = entry;
             clearModule(configPath);
-            const config = require(configPath);
+            const config = simpleRequire(configPath);
 
             const cronsToCheck = entry.crons || {};
 
@@ -211,7 +219,7 @@ const setupTasksRoutes = async function () {
         for (const entry of entries) {
             const { configPath } = entry;
             clearModule(configPath);
-            const config = require(configPath);
+            const config = simpleRequire(configPath);
 
             const [err, doCallMainExecution] = await runner({
                 taskConfig: config,
@@ -311,7 +319,7 @@ const setupTasksRoutes = async function () {
                     const { configPath } = task;
 
                     clearModule(configPath);
-                    const config = require(configPath);
+                    const config = simpleRequire(configPath);
 
                     const fn = async function () {
                         // TODO: FIXME: Handle error
