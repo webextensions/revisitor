@@ -1,7 +1,6 @@
 #!/usr/bin/env node --no-warnings=ExperimentalWarning
 
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import os from 'node:os';
 
@@ -20,7 +19,7 @@ const packageJson = createRequire(import.meta.url)('../../../../package.json');
 
 const beginTimestamp = Date.now();
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 const projectRoot = path.resolve(__dirname, '..', '..', '..', '..');
 
 // Note: Keep this as the first line of the application code to ensure that this global variable is available throughout the worker

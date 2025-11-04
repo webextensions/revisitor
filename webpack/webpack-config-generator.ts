@@ -1,5 +1,4 @@
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import webpack from 'webpack';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
@@ -24,7 +23,7 @@ const require = createRequire(import.meta.url);
 // Probably using `import(...)` based syntax would make it work
 const CopyWebpackPlugin = require('copy-webpack-plugin');
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const projectRoot = path.join(__dirname, '..');
 

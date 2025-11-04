@@ -4,12 +4,10 @@
 
 'use strict';
 
-import path, { dirname } from 'node:path';
+import path from 'node:path';
 import https from 'node:https';
 import http from 'node:http';
 import fs from 'node:fs';
-
-import { fileURLToPath } from 'node:url';
 
 import webpack from 'webpack';
 import webpackDevMiddleware from 'webpack-dev-middleware';
@@ -46,7 +44,7 @@ import { basicAuth } from './middleware/basic-auth.ts';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 let localIpAddressesAndHostnames;
 

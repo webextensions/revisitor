@@ -9,14 +9,13 @@
 //     $ ./check-node-version.ts --return-exit-code
 
 import fs from 'node:fs';
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import semver from 'semver';
 
 import { logger } from '../../utils/logger.ts';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const returnExitCode = (process.argv[2] === '--return-exit-code');
 

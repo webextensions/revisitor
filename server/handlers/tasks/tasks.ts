@@ -1,7 +1,6 @@
 // TODO: FIXME: If a project is schedule, but not setup, then its execution wouldn't work
 
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import { createRequire } from 'node:module';
 
@@ -28,7 +27,7 @@ import {
 
 import { runner } from './runner/runner.ts';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const require = createRequire(import.meta.url);
 

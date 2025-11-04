@@ -2,14 +2,13 @@
 
 /* eslint-disable filenames/match-exported */
 
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import chalk from 'chalk';
 
 import { webpackConfigGenerator } from './webpack/webpack-config-generator.ts';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 const showHelp = function () {
     const

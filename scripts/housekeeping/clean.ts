@@ -2,8 +2,7 @@
 
 /* global exec */
 
-import path, { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 
 import _ from 'lodash';
 import { deleteSync } from 'del';
@@ -14,7 +13,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 require('shelljs/global');
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const __dirname = import.meta.dirname;
 
 // TODO: Use globs for these patterns
 
