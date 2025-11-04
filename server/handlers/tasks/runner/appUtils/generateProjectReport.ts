@@ -1,4 +1,4 @@
-import { formatLine } from './formatLine.js';
+import { formatLine } from './formatLine.ts';
 
 export const generateProjectReport = function (
     {

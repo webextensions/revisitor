@@ -23,13 +23,13 @@ import {
 
 import notifier from '../../../../utils/notifications/notifications.ts';
 
-import { formatLine } from './appUtils/formatLine.js';
-import { generateProjectReport } from './appUtils/generateProjectReport.js';
-import { getLogOrWarnOrSkipWarnOrError } from './appUtils/getLogOrWarnOrSkipWarnOrError.js';
-import { tagNodeVersions } from './appUtils/nodeOutdated/nodeOutdatedHelpers.js';
+import { formatLine } from './appUtils/formatLine.ts';
+import { generateProjectReport } from './appUtils/generateProjectReport.ts';
+import { getLogOrWarnOrSkipWarnOrError } from './appUtils/getLogOrWarnOrSkipWarnOrError.ts';
+import { tagNodeVersions } from './appUtils/nodeOutdated/nodeOutdatedHelpers.ts';
 
-import { sendSlackMessage } from './reporters/slack/sendSlackMessage.js';
-import { sendMail } from './reporters/mail/sendMail.js';
+import { sendSlackMessage } from './reporters/slack/sendSlackMessage.ts';
+import { sendMail } from './reporters/mail/sendMail.ts';
 
 const chalk = noteDown.chalk;
 noteDown.option('showLogLine', false);
