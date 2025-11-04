@@ -5,6 +5,8 @@ import { $, execa } from 'execa';
 
 import semver from 'semver';
 
+import isOnline from 'is-online';
+
 import { htmlEscape } from 'helpmate/dist/misc/htmlEscape.cjs';
 import { timeout } from 'helpmate/dist/scheduler/timeout.cjs';
 import { tryCatchSafe } from 'helpmate/dist/control/tryCatch.cjs';
@@ -66,15 +68,26 @@ const execaWithRetryConfig = {
     }
 };
 
+const extraConfigWithOnlineCheck = {
+    isOnline: true
+};
+
 // Sometimes, the (`execa`) command fails with an error, but it may work if retried. This function assists in such cases.
 // eg: An error like `error: cannot lock ref 'refs/remotes/origin/main': is at ...`
-const execaWithRetry = async function (command, args, config, retryConfig) {
+const execaWithRetry = async function (command, args, config, retryConfig, extraConfig = {}) {
     const { attempts, retryStrategy } = retryConfig;
 
     let attempt = 0;
     let delay = retryStrategy.initialDelay;
     while (attempt < attempts) {
         try {
+            if (extraConfig.isOnline) {
+                const flagOnline = await isOnline();
+                if (!flagOnline) {
+                    await isOnline({ timeout: 15000 }); // Wait for restoration of internet connection
+                    await timeout(7500);                // Wait a bit more for stability in internet connection
+                }
+            }
             const retValue = await execa(command, args, config);
             return retValue;
         } catch (err) {
@@ -415,7 +428,7 @@ const mainExecution = async function ({
                     }
                 }
 
-                await execaWithRetry('git', ['fetch'], execaConfigWithCwd(projectPath), execaWithRetryConfig);
+                await execaWithRetry('git', ['fetch'], execaConfigWithCwd(projectPath), execaWithRetryConfig, extraConfigWithOnlineCheck);
 
                 for (const branch of project.branches) {
                     await reportIfError.run(async () => {
@@ -589,7 +602,7 @@ const mainExecution = async function ({
                                     const { approach } = options;
 
                                     const t1 = Date.now();
-                                    const outdated = await execaWithRetry('npx', ['--yes', 'npm-check-updates', '--jsonUpgraded'], execaConfigWithCwd(projectPath), execaWithRetryConfig);
+                                    const outdated = await execaWithRetry('npx', ['--yes', 'npm-check-updates', '--jsonUpgraded'], execaConfigWithCwd(projectPath), execaWithRetryConfig, extraConfigWithOnlineCheck);
                                     const t2 = Date.now();
                                     let durationToAppend = '';
                                     if (reportDuration) {
@@ -847,7 +860,7 @@ const setupGitRepo = async function ({
 
             pinoLogger.info(`The Git project is available at: ${targetDirectoryPath}`);
 
-            await execaWithRetry('git', ['fetch'], execaConfigWithCwd(targetDirectoryPath), execaWithRetryConfig);
+            await execaWithRetry('git', ['fetch'], execaConfigWithCwd(targetDirectoryPath), execaWithRetryConfig, extraConfigWithOnlineCheck);
 
             const { branches } = project;
             const branch = branches[0];
