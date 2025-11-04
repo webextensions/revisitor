@@ -19,9 +19,9 @@ import {
 import {
     pinoLogger,
     pinoJsonBeautifier
-} from './utils/pinoLogger.mjs';
+} from './utils/pinoLogger.ts';
 
-import notifier from '../../../../utils/notifications/notifications.mjs';
+import notifier from '../../../../utils/notifications/notifications.ts';
 
 import { formatLine } from './appUtils/formatLine.js';
 import { generateProjectReport } from './appUtils/generateProjectReport.js';

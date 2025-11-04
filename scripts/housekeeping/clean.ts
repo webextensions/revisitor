@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import _ from 'lodash';
 import { deleteSync } from 'del';
 
-import { logger } from '../../utils/logger.mjs';
+import { logger } from '../../utils/logger.ts';
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -21,8 +21,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const patternsMarkedToKeep = [
     '.husky/_/',
     'node_modules/',
-    'config/config.development.local.mjs',
-    'config/config.production.local.mjs'
+    'config/config.development.local.js',
+    'config/config.production.local.js'
 ];
 
 const patternsToDelete = [

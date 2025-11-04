@@ -15,7 +15,7 @@
     },
 
     "type": "module",
-    "main": "server/application.mjs",
+    "main": "server/application.ts",
 
     "dependencies": {
         "@pmmmwh/react-refresh-webpack-plugin": "^0.5.15",
@@ -127,7 +127,7 @@
         "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2", // TODO: CLEANUP: Doesn't seem to be required anymore. Also search for "transform-es2015-modules-commonjs" in the project for its usage when removing it
 
         // Build - Bundling
-        "webpack-cli": "^5.1.4",
+        "webpack-cli": "^6.0.1",
         "copy-webpack-plugin": "^12.0.2",
         "babel-loader": "^9.2.1",
         "css-loader": "^7.1.2",
@@ -165,11 +165,11 @@
 
         /* Build (with webpack) */
         // References: https://stackoverflow.com/questions/16978256/what-is-node-env-in-express/16979503#16979503
-        "build:production:local":                                                        "NODE_ENV=production webpack --mode production  --watch --progress --env config=\"./config/config.production.local.mjs\"",
-        "build:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk ./node_modules/.bin/webpack-cli --mode production          --progress --env config=\"./config/config.production.local.mjs\"",
+        "build:production:local":                                                        "NODE_ENV=production webpack --disable-interpret --mode production  --watch --progress --env config=\"./config/config.production.local.js\"",
+        "build:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk ./node_modules/.bin/webpack-cli --disable-interpret --mode production          --progress --env config=\"./config/config.production.local.js\"",
 
-        "build:development:local":                                                                           "webpack --mode development --watch --progress --env config=\"./config/config.development.local.mjs\"",
-        "build:development:local:inspect-brk":                    "node --inspect-brk ./node_modules/.bin/webpack-cli --mode development         --progress --env config=\"./config/config.development.local.mjs\"",
+        "build:development:local":                                                                           "webpack --disable-interpret --mode development --watch --progress --env config=\"./config/config.development.local.js\"",
+        "build:development:local:inspect-brk":                    "node --inspect-brk ./node_modules/.bin/webpack-cli --disable-interpret --mode development         --progress --env config=\"./config/config.development.local.js\"",
 
         "build":                   "npm run build:development:local",
         "build:inspect-brk":       "npm run build:development:local:inspect-brk",
@@ -178,13 +178,13 @@
         "start:build:inspect-brk": "npm run build:inspect-brk",
 
         /* Server */
-        "server:production:local":             "NODE_ENV=production node               server/server.ts --config config/config.production.local.mjs",
-        "server:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk server/server.ts --config config/config.production.local.mjs",
+        "server:production:local":             "NODE_ENV=production node               server/server.ts --config config/config.production.local.js",
+        "server:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk server/server.ts --config config/config.production.local.js",
 
-        "server:development:local":                                "node               server/server.ts --config config/config.development.local.mjs",
-        "server:development:local:http-port-dynamic": "HTTP_PORT_DYNAMIC=yes node      server/server.ts --config config/config.development.local.mjs",
-        "server:development:local:inspect-brk":                    "node --inspect-brk server/server.ts --config config/config.development.local.mjs",
-        "server:development:local:use-hmr":            "USE_HMR=yes node               server/server.ts --config config/config.development.local.mjs",
+        "server:development:local":                                "node               server/server.ts --config config/config.development.local.js",
+        "server:development:local:http-port-dynamic": "HTTP_PORT_DYNAMIC=yes node      server/server.ts --config config/config.development.local.js",
+        "server:development:local:inspect-brk":                    "node --inspect-brk server/server.ts --config config/config.development.local.js",
+        "server:development:local:use-hmr":            "USE_HMR=yes node               server/server.ts --config config/config.development.local.js",
 
         "start:server":             "npm run server:development:local",
         "start:server:inspect-brk": "npm run server:development:local:inspect-brk",
@@ -198,7 +198,7 @@
         "housekeeping:update-package-cjson-and-json": "./scripts/housekeeping/update-package-cjson-and-json.sh",
         "housekeeping:update-package-lock-json":      "./scripts/housekeeping/update-package-lock-json.sh",
         "housekeeping:review-dependencies":           "./scripts/housekeeping/imperfect/review-dependencies-via-depcheck.sh",
-        "housekeeping:clean":                         "./scripts/housekeeping/clean.mjs",
+        "housekeeping:clean":                         "./scripts/housekeeping/clean.ts",
 
         /* Linting, tests etc */
         "lint":     "eslint . --ext .cjs,.js,.mjs,.ts,.tsx --report-unused-disable-directives",

@@ -16,17 +16,17 @@ import {
     sendErrorResponse,
     sendSuccessResponse,
     sendSuccessResponseAsAccepted
-} from '../../utils/express-utils/express-utils.mjs';
+} from '../../utils/express-utils/express-utils.ts';
 
-import notifier from '../../../utils/notifications/notifications.mjs';
+import notifier from '../../../utils/notifications/notifications.ts';
 
-import { pinoLogger } from './runner/utils/pinoLogger.mjs';
+import { pinoLogger } from './runner/utils/pinoLogger.ts';
 import {
     setCronSchedule,
     clearCronSchedule
-} from './runner/utils/cronSchedule.mjs';
+} from './runner/utils/cronSchedule.ts';
 
-import { runner } from './runner/runner.mjs';
+import { runner } from './runner/runner.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

@@ -4,9 +4,9 @@
 //
 // How to use:
 //
-//     $ ./check-node-version.mjs
+//     $ ./check-node-version.ts
 //           OR
-//     $ ./check-node-version.mjs --return-exit-code
+//     $ ./check-node-version.ts --return-exit-code
 
 import fs from 'node:fs';
 import path, { dirname } from 'node:path';
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 import semver from 'semver';
 
-import { logger } from '../../utils/logger.mjs';
+import { logger } from '../../utils/logger.ts';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 

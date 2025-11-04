@@ -15,7 +15,7 @@ import webpack from 'webpack';
 import webpackDevMiddleware from 'webpack-dev-middleware';
 import webpackHotMiddleware from 'webpack-hot-middleware';
 
-import webpackConfig from '../webpack.config.mjs';
+import webpackConfig from '../webpack.config.ts';
 
 import express from 'express';
 import bodyParser from 'body-parser';
@@ -33,7 +33,7 @@ import { logger } from 'note-down';
 
 import libLocalIpAddressesAndHostnames from 'local-ip-addresses-and-hostnames';
 
-import notifier from '../utils/notifications/notifications.mjs';
+import notifier from '../utils/notifications/notifications.ts';
 
 import hardCodedResponse from 'express-hard-coded-response';
 import networkDelay from 'express-network-delay';
@@ -41,7 +41,7 @@ import redirectToWww from 'express-redirect-to-www';
 import redirectToHttps from 'express-redirect-to-https';
 import matchRequest from 'express-match-request';
 
-import { basicAuth } from './middleware/basic-auth.mjs';
+import { basicAuth } from './middleware/basic-auth.ts';
 
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
@@ -61,9 +61,9 @@ const routeSetup = async function (exp) {
                 logger.log('TODO: The access to this route needs to be limited to administrators only');
                 next();
             })
-            .get('/help', (await import('./handlers/admin/expressHandlers/expressHandlers.mjs')).expressHandlers(exp))
-            .get('/info', (await import('./handlers/admin/info/info.mjs')).info)
-            .get('/kill', (await import('./handlers/admin/kill/kill.mjs')).kill)
+            .get('/help', (await import('./handlers/admin/expressHandlers/expressHandlers.ts')).expressHandlers(exp))
+            .get('/info', (await import('./handlers/admin/info/info.ts')).info)
+            .get('/kill', (await import('./handlers/admin/kill/kill.ts')).kill)
             .use('/users', express.Router()
                 .get('/', function (req, res) {
                     res.send('TODO: Serve the /GET request for /admin/users');
@@ -84,7 +84,7 @@ const routeSetup = async function (exp) {
                 res.send(`TODO: Create a user with ID ${reqBody.username} (if available)`);
             })
         )
-        .use('/tasks', await (await import('./handlers/tasks/tasks.mjs')).setupTasksRoutes());
+        .use('/tasks', await (await import('./handlers/tasks/tasks.ts')).setupTasksRoutes());
 
     setTimeout(function () {
         // Setting up this router after a delay so that live-css server router is able to attach itself before it
