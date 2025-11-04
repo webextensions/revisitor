@@ -16,14 +16,20 @@ sleep 5
 
 set +x
 
-echo "$ nvm install -b"
-        nvm install -b
-
-
-# Though `nvm install` internally calls `nvm use` in general, but `nvm install` may fail if internet connection is not
-# available (and `nvm use` is not called in that case)
+# Attempt to use the existing Node.js version if already available
 echo "$ nvm use"
         nvm use
+
+# If nvm use failed, install the Node.js version
+if [ $? -ne 0 ]; then
+    echo "$ nvm install -b"
+            nvm install -b
+
+    # Though `nvm install` internally calls `nvm use` in general, but `nvm install` may fail if internet connection is not
+    # available (and `nvm use` is not called in that case)
+    echo "$ nvm use"
+            nvm use
+fi
 
 set -x
 
