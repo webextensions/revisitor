@@ -1,4 +1,4 @@
-const semver = require('semver');
+import semver from 'semver';
 
 const sortVersions = function (arrVersions) {
     const clonedArrVersions = structuredClone(arrVersions);
@@ -7,7 +7,7 @@ const sortVersions = function (arrVersions) {
     });
 };
 
-const tagNodeVersions = async function () {
+export const tagNodeVersions = async function () {
     const { execa } = (await import('execa'));
 
     // Somehow, the network call via 'got' / 'ky' libraries are erroring out with 'ETIMEDOUT' error. The error is a bit
@@ -64,5 +64,3 @@ const tagNodeVersions = async function () {
 
     return taggedVersions;
 };
-
-module.exports = { tagNodeVersions };

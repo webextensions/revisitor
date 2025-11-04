@@ -1,4 +1,4 @@
-const getLogOrWarnOrSkipWarnOrError = function ({
+export const getLogOrWarnOrSkipWarnOrError = function ({
     // reportContents_job, // 'always' (default) / 'onIssue' // TODO: Implement
     limit,              // <object>
     deltaDirection,     // 'increment' / 'decrement'
@@ -51,5 +51,3 @@ const getLogOrWarnOrSkipWarnOrError = function ({
         return 'log';
     }
 };
-
-module.exports = { getLogOrWarnOrSkipWarnOrError };

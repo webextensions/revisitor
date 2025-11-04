@@ -1,6 +1,6 @@
-const { formatLine } = require('./formatLine.js');
+import { formatLine } from './formatLine.js';
 
-const generateProjectReport = function (
+export const generateProjectReport = function (
     {
         forRunner,
         forProject,
@@ -117,5 +117,3 @@ const generateProjectReport = function (
         return arrReport.join('\n');
     }
 };
-
-module.exports = { generateProjectReport };

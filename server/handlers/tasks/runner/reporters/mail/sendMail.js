@@ -1,8 +1,8 @@
-const sgMail = require('@sendgrid/mail');
+import sgMail from '@sendgrid/mail';
 
-const { logger } = require('note-down');
+import { logger } from 'note-down';
 
-const sendMail = async function (
+export const sendMail = async function (
     {
         apiKey
     },
@@ -36,8 +36,4 @@ const sendMail = async function (
         logger.error(e);
         return [e];
     }
-};
-
-module.exports = {
-    sendMail
 };

@@ -14,7 +14,7 @@
         "url": "https://github.com/webextensions/revisitor/issues"
     },
 
-    // "type": "module",
+    "type": "module",
     "main": "server/application.mjs",
 
     "dependencies": {
@@ -137,8 +137,6 @@
         "mocha": "^10.7.3",
 
         // Development assistants
-        "nodemon": "^3.1.7",
-
         "@webextensions/live-css": "=8.0.3",
         "local-ip-addresses-and-hostnames": "=0.2.0",
 
@@ -180,13 +178,13 @@
         "start:build:inspect-brk": "npm run build:inspect-brk",
 
         /* Server */
-        "server:production:local":             "NODE_ENV=production nodemon            server/server.mjs -- --config config/config.production.local.mjs",
-        "server:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk server/server.mjs    --config config/config.production.local.mjs",
+        "server:production:local":             "NODE_ENV=production node               server/server.ts --config config/config.production.local.mjs",
+        "server:production:local:inspect-brk": "NODE_ENV=production node --inspect-brk server/server.ts --config config/config.production.local.mjs",
 
-        "server:development:local":                                "nodemon            server/server.mjs -- --config config/config.development.local.mjs",
-        "server:development:local:http-port-dynamic": "HTTP_PORT_DYNAMIC=yes nodemon   server/server.mjs -- --config config/config.development.local.mjs",
-        "server:development:local:inspect-brk":                    "node --inspect-brk server/server.mjs    --config config/config.development.local.mjs",
-        "server:development:local:use-hmr":            "USE_HMR=yes nodemon            server/server.mjs -- --config config/config.development.local.mjs",
+        "server:development:local":                                "node               server/server.ts --config config/config.development.local.mjs",
+        "server:development:local:http-port-dynamic": "HTTP_PORT_DYNAMIC=yes node      server/server.ts --config config/config.development.local.mjs",
+        "server:development:local:inspect-brk":                    "node --inspect-brk server/server.ts --config config/config.development.local.mjs",
+        "server:development:local:use-hmr":            "USE_HMR=yes node               server/server.ts --config config/config.development.local.mjs",
 
         "start:server":             "npm run server:development:local",
         "start:server:inspect-brk": "npm run server:development:local:inspect-brk",

@@ -1,6 +1,6 @@
-const { logger } = require('note-down');
+import { logger } from 'note-down';
 
-const sendSlackMessage = async function ({ webhookUrl, message }) {
+export const sendSlackMessage = async function ({ webhookUrl, message }) {
     if (process.env.DISABLE_SLACK_WEBHOOK === 'yes') {
         return [null, 'DISABLE_SLACK_WEBHOOK=yes (Slack webhook is disabled) ; Skipping posting message to Slack'];
     } else {
@@ -23,8 +23,4 @@ const sendSlackMessage = async function ({ webhookUrl, message }) {
             return [e];
         }
     }
-};
-
-module.exports = {
-    sendSlackMessage
 };

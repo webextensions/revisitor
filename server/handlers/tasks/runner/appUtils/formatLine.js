@@ -1,10 +1,10 @@
-const { noteDown } = require('note-down');
+import { noteDown } from 'note-down';
 const chalk = noteDown.chalk;
 
 // format: 'console' / 'markdown' / 'mail'
 // reportType: 'error' / 'warn' / 'log'
 // message: string / array of strings / array of objects
-const formatLine = function (format, reportType, message) {
+export const formatLine = function (format, reportType, message) {
     let finalMessage = '';
 
     if (typeof message === 'string') {
@@ -83,5 +83,3 @@ const formatLine = function (format, reportType, message) {
 
     return finalMessage;
 };
-
-module.exports = { formatLine };
